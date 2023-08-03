@@ -73,7 +73,7 @@ class EDNetwork(nn.Module):
         return y
 
 
-def EDExperiments(dim_z=5, m=10, batch=10, iters=200, trials=10, method='exact', loss_on='all', mat_type='general', rand_in=False):
+def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='exact', loss_on='all', mat_type='general', rand_in=False):
 
     learning_curves = [[] for i in range(trials)]
     cosine_sim_curves = [[] for i in range(trials)]
@@ -146,56 +146,56 @@ if __name__ == '__main__':
     if enable_ed_random_exp:
         if exact_exp:
             # all evs, psd matrix, random input
-            exact_curves, _ = EDExperiments(dim_z=5, method='exact', loss_on='all', mat_type='psd', rand_in=True)
+            exact_curves, _ = EDExperiments(method='exact', loss_on='all', mat_type='psd', rand_in=True)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/exact_all_psd_rand.pdf', dpi=300, bbox_inches='tight')
             
             # second smallest ev, psd matrix, random input
-            exact_curves, _ = EDExperiments(dim_z=5, method='exact', loss_on='second_smallest', mat_type='psd', rand_in=True)
+            exact_curves, _ = EDExperiments(method='exact', loss_on='second_smallest', mat_type='psd', rand_in=True)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/exact_second_psd_rand.pdf', dpi=300, bbox_inches='tight')
 
             # min ev, psd matrix, random input
-            exact_curves, _ = EDExperiments(dim_z=5, method='exact', loss_on='min', mat_type='psd', rand_in=True)
+            exact_curves, _ = EDExperiments(method='exact', loss_on='min', mat_type='psd', rand_in=True)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/exact_min_psd_rand.pdf', dpi=300, bbox_inches='tight')
 
             # max ev, psd matrix, random input
-            exact_curves, _ = EDExperiments(dim_z=5, method='exact', loss_on='max', mat_type='psd', rand_in=True)
+            exact_curves, _ = EDExperiments(method='exact', loss_on='max', mat_type='psd', rand_in=True)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/exact_max_psd_rand.pdf', dpi=300, bbox_inches='tight')
             
             # all evs, psd matrix, psd input
-            exact_curves, _ = EDExperiments(dim_z=5, method='exact', loss_on='all', mat_type='psd', rand_in=False)
+            exact_curves, _ = EDExperiments(method='exact', loss_on='all', mat_type='psd', rand_in=False)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/exact_all_psd.pdf', dpi=300, bbox_inches='tight')
             
             # second smallest ev, psd matrix, psd input
-            exact_curves, _ = EDExperiments(dim_z=5, method='exact', loss_on='second_smallest', mat_type='psd', rand_in=False)
+            exact_curves, _ = EDExperiments(method='exact', loss_on='second_smallest', mat_type='psd', rand_in=False)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/exact_second_psd.pdf', dpi=300, bbox_inches='tight')
 
             # min ev, psd matrix, psd input
-            exact_curves, _ = EDExperiments(dim_z=5, method='exact', loss_on='min', mat_type='psd', rand_in=False)
+            exact_curves, _ = EDExperiments(method='exact', loss_on='min', mat_type='psd', rand_in=False)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/exact_min_psd.pdf', dpi=300, bbox_inches='tight')
 
             # max ev, psd matrix, psd input
-            exact_curves, _ = EDExperiments(dim_z=5, method='exact', loss_on='max', mat_type='psd', rand_in=False)
+            exact_curves, _ = EDExperiments(method='exact', loss_on='max', mat_type='psd', rand_in=False)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
@@ -203,56 +203,56 @@ if __name__ == '__main__':
         
         if pytorch_exp:
             # all evs, psd matrix, random input
-            exact_curves, _ = EDExperiments(dim_z=5, method='pytorch', loss_on='all', mat_type='psd', rand_in=True)
+            exact_curves, _ = EDExperiments(method='pytorch', loss_on='all', mat_type='psd', rand_in=True)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/pytorch_all_psd_rand.pdf', dpi=300, bbox_inches='tight')
             
             # second smallest ev, psd matrix, random input
-            exact_curves, _ = EDExperiments(dim_z=5, method='pytorch', loss_on='second_smallest', mat_type='psd', rand_in=True)
+            exact_curves, _ = EDExperiments(method='pytorch', loss_on='second_smallest', mat_type='psd', rand_in=True)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/pytorch_second_psd_rand.pdf', dpi=300, bbox_inches='tight')
 
             # min ev, psd matrix, random input
-            exact_curves, _ = EDExperiments(dim_z=5, method='pytorch', loss_on='min', mat_type='psd', rand_in=True)
+            exact_curves, _ = EDExperiments(method='pytorch', loss_on='min', mat_type='psd', rand_in=True)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/pytorch_min_psd_rand.pdf', dpi=300, bbox_inches='tight')
 
             # max ev, psd matrix, random input
-            exact_curves, _ = EDExperiments(dim_z=5, method='pytorch', loss_on='max', mat_type='psd', rand_in=True)
+            exact_curves, _ = EDExperiments(method='pytorch', loss_on='max', mat_type='psd', rand_in=True)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/pytorch_max_psd_rand.pdf', dpi=300, bbox_inches='tight')
             
             # all evs, psd matrix, psd input
-            exact_curves, _ = EDExperiments(dim_z=5, method='pytorch', loss_on='all', mat_type='psd', rand_in=False)
+            exact_curves, _ = EDExperiments(method='pytorch', loss_on='all', mat_type='psd', rand_in=False)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/pytorch_all_psd.pdf', dpi=300, bbox_inches='tight')
             
             # second smallest ev, psd matrix, psd input
-            exact_curves, _ = EDExperiments(dim_z=5, method='pytorch', loss_on='second_smallest', mat_type='psd', rand_in=False)
+            exact_curves, _ = EDExperiments(method='pytorch', loss_on='second_smallest', mat_type='psd', rand_in=False)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/pytorch_second_psd.pdf', dpi=300, bbox_inches='tight')
 
             # min ev, psd matrix, psd input
-            exact_curves, _ = EDExperiments(dim_z=5, method='pytorch', loss_on='min', mat_type='psd', rand_in=False)
+            exact_curves, _ = EDExperiments(method='pytorch', loss_on='min', mat_type='psd', rand_in=False)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
             plt.savefig('figures/pytorch_min_psd.pdf', dpi=300, bbox_inches='tight')
 
             # max ev, psd matrix, psd input
-            exact_curves, _ = EDExperiments(dim_z=5, method='pytorch', loss_on='max', mat_type='psd', rand_in=False)
+            exact_curves, _ = EDExperiments(method='pytorch', loss_on='max', mat_type='psd', rand_in=False)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
