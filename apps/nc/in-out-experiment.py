@@ -283,7 +283,8 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
                 # NOTE: for the stuff from anu it would be Q_true[:,:,1] as it is assuming output is including everything
                 loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 1], Q_true))) # second smallest
                 if i % 10 == 0:
-                    save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().numpy(), output_name=f'iters-{iters}-loss-{i}.png', output_path='figures/')
+                    
+                    save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().numpy(), output_name=f'{method}-{loss_on}-{mat_type}-tex-{texture}-iters-{iters}-loss-{i}.png', output_path='figures/')
             else:
                 assert False, "loss_on must be one of ('all', 'max', 'min', 'second_smallest)"
             learning_curves[trial].append(float(loss.item()))
