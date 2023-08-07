@@ -186,7 +186,7 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
     size=(28,28)
     
     if True:
-        X_input = load_images_from_directory('data/tc/img/', num=batch, size=size)
+        X_input = load_images_from_directory('data/tc/img/', num=batch, size=size).cuda()
         if texture:
             Q_true = load_images_from_directory('data/tc/maskT', num=batch, size=size)
         else:
@@ -195,7 +195,7 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
         # TODO: bw experiment here
         return
     
-    Q_true = Q_true.flatten(start_dim=1) # Flatten to match flat outputs...
+    Q_true = Q_true.flatten(start_dim=1).cuda() # Flatten to match flat outputs...
 
     for trial in range(trials):
         # prepare data and model
@@ -205,7 +205,7 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
         m = dim_z
         # NOTE: X_input is flattened within forward, but not here for visualisation purposes
         
-        model = EDNetwork(dim_z, m, method=method, top_k=1 if loss_on=='max' else None, matrix_type=mat_type)
+        model = EDNetwork(dim_z, m, method=method, top_k=1 if loss_on=='max' else None, matrix_type=mat_type, device='cuda')
         optimizer = torch.optim.AdamW(model.parameters(), lr=1.0e-3)
         
         # summary(model, X_input.shape)
