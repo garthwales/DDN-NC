@@ -158,7 +158,7 @@ def EDExperiments(batch=10, iters=1000, trials=5, method='exact', loss_on='secon
                 # NOTE: for the stuff from anu it would be Q_true[:,:,1] as it is assuming output is including everything
                 loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 1], Q_true))) # second smallest
                 if i % 20 == 0:
-                    name = f'iters-{iters}-loss-{i}.png'
+                    name = f'trial-{trial}-iter-{i}.png'
                     save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().cpu().numpy(), output_name=name, output_path=output_folder)
             else:
                 assert False, "loss_on must be one of ('all', 'max', 'min', 'second_smallest)"
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     enable_ed_random_exp = True
     # -- sub experiments vvvvvv
     exact_exp            = True
-    pytorch_exp          = False
+    pytorch_exp          = True
 
     # --------------------------------------------------------------------------------------------------------------------
     # --- eigen decomposition ---
