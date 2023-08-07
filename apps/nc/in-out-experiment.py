@@ -1,9 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
-plt.rcParams.update({'font.size': 20})
-
-import torch, os
+from datetime import datetime
+import torch
+import os
 import torch.nn as nn
+
+from utils import *
+
+plt.rcParams.update({'font.size': 20})
 
 os.makedirs("figures", exist_ok=True)
 
@@ -77,149 +81,8 @@ class EDNetwork(nn.Module):
 
         return y
 
-# Function to load all images from a directory and convert to PyTorch tensors
-def load_images_from_directory(directory, num=10, size=(28,28)):
-    import cv2
-    from torchvision import transforms
-    
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-    ])
-    
-    images = []
-    for i, filename in enumerate(os.listdir(directory)):
-        if i >= num:
-            return torch.stack(images)
-        img_path = os.path.join(directory, filename)
-        image = cv2.resize(cv2.imread(img_path,0), size)
-        image = transform(image).squeeze() # ToTensor() adds too much
-        images.append(image)
-    return torch.stack(images)
 
-def add_headers(
-    fig,
-    *,
-    row_headers=None,
-    col_headers=None,
-    row_pad=1,
-    col_pad=5,
-    rotate_row_headers=True,
-    **text_kwargs
-):
-    # Based on https://stackoverflow.com/a/25814386
-
-    axes = fig.get_axes()
-
-    for ax in axes:
-        sbs = ax.get_subplotspec()
-
-        # Putting headers on cols
-        if (col_headers is not None) and sbs.is_first_row():
-            ax.annotate(
-                col_headers[sbs.colspan.start],
-                xy=(0.5, 1),
-                xytext=(0, col_pad),
-                xycoords="axes fraction",
-                textcoords="offset points",
-                ha="center",
-                va="baseline",
-                **text_kwargs,
-            )
-
-        # Putting headers on rows
-        if (row_headers is not None) and sbs.is_first_col():
-            ax.annotate(
-                row_headers[sbs.rowspan.start],
-                xy=(0, 0.5),
-                xytext=(-ax.yaxis.labelpad - row_pad, 0),
-                xycoords=ax.yaxis.label,
-                textcoords="offset points",
-                ha="right",
-                va="center",
-                rotation=rotate_row_headers * 90,
-                **text_kwargs,
-            )
-
-def plot_images(imgs, labels=None, row_headers=None, col_headers=None, colmns=None, title=None):
-    """
-    imgs = [img1, img2]
-    labels = ['label1', 'label2']
-    colmns = 2 (so will be a 1x2 size display)
-    """
-    num = len(imgs)
-    # Calculate the given number of subplots, or use colmns count to get a specific output
-    if colmns is None:
-        ay = np.ceil(np.sqrt(num)).astype(int) # this way it will prefer rows rather than columns
-        ax = np.rint(np.sqrt(num)).astype(int)
-    else:
-        ax = np.ceil(num / colmns).astype(int)
-        ay = colmns
-        
-    fig = plt.figure()
-    if title is not None:
-        fig.suptitle(title, fontsize=16)
-    
-    for i in range(1, num+1):
-        sub = fig.add_subplot(ax,ay,i)
-        if labels is not None:
-            sub.set_title(f'{labels[i-1]}')
-            
-        sub.axis('off')
-        sub.imshow(imgs[i-1])
-        
-    add_headers(fig, row_headers=row_headers, col_headers=col_headers, rotate_row_headers=False)
-
-def save_plot_imgs(image_list, labels=None, output_path='folder/', output_name='image.png', grid_size=None):
-    """
-    Plots all the images together in a grid layout and saves the plot as a single image.
-
-    Parameters:
-        image_list (list of numpy arrays): List of images as numpy arrays.
-        labels (list of str): List of labels for each image (optional). Default is None.
-        output_path (str): Path to save the output image. Default is 'output_image.png'.
-        grid_size (tuple of int): Size of the grid (rows, columns) to arrange the images. If None, it is calculated based on the number of images. Default is None.
-        square (bool): Whether to make the images square by padding if needed. Default is True.
-    """
-
-    # Calculate the grid size if not provided
-    num_images = len(image_list)
-    if grid_size is None:
-        num_rows = np.ceil(np.sqrt(num_images)).astype(int)
-        num_cols = np.ceil(num_images / num_rows).astype(int)
-    else:
-        num_rows, num_cols = grid_size
-
-    # Create the figure and axis
-    fig, axs = plt.subplots(num_rows, num_cols, figsize=(30, 30))  # Adjust the figsize if needed
-    
-    output_path = os.path.join(output_path, output_name)
-    fig.suptitle(output_name, fontsize=16)
-
-    # Iterate through each image
-    for i in range(num_rows):
-        for j in range(num_cols):
-            idx = i * num_cols + j
-            if idx < num_images:
-                image = image_list[idx]
-
-                # Show the image
-                axs[i, j].imshow(image)
-                axs[i, j].axis('off')
-
-                # Add label if provided
-                if labels is not None and idx < len(labels):
-                    axs[i, j].set_title(labels[idx])
-
-    # Remove any remaining empty subplots
-    for idx in range(num_images, num_rows * num_cols):
-        fig.delaxes(axs.flatten()[idx])
-
-    # Save the plot to a file
-    plt.tight_layout()  # Adjust spacing and layout
-    plt.savefig(output_path, bbox_inches='tight', pad_inches=0.1, dpi=300)  # Adjust dpi if needed
-    plt.close()
-
-def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorch', loss_on='second_smallest', mat_type='psd', texture=True):
+def EDExperiments(batch=10, iters=1000, trials=5, method='exact', loss_on='second_smallest', mat_type='psd', texture=True):
     from generate_dataset import texture_colour
     # from torchsummary import summary
     
@@ -235,7 +98,7 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
     
     size=(28,28)
     
-    device = torch.device(f'cuda:1' if torch.cuda.is_available() else 'cpu') # or cuda:{args.gpu}
+    device = torch.device(f'cuda:1' if torch.cuda.is_available() else 'cpu') # or f'cuda:{args.gpu}' etc
     
     if True:
         X_input = load_images_from_directory('data/tc/img/', num=batch, size=size).to(device)
@@ -249,8 +112,6 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
     
     Q_true = Q_true.flatten(start_dim=1).to(device) # Flatten to match flat outputs...
     
-
-
     for trial in range(trials):
         # prepare data and model
         torch.manual_seed(22 + trial)
@@ -282,8 +143,7 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
             elif loss_on == 'second_smallest':
                 # NOTE: for the stuff from anu it would be Q_true[:,:,1] as it is assuming output is including everything
                 loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 1], Q_true))) # second smallest
-                if i % 10 == 0:
-                    
+                if i % 20 == 0:
                     save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().cpu().numpy(), output_name=f'{method}-{loss_on}-{mat_type}-tex-{texture}-iters-{iters}-loss-{i}.png', output_path='figures/')
             else:
                 assert False, "loss_on must be one of ('all', 'max', 'min', 'second_smallest)"
@@ -313,43 +173,68 @@ if __name__ == '__main__':
     enable_ed_random_exp = True
     # -- sub experiments vvvvvv
     exact_exp            = True
-    pytorch_exp          = True
+    pytorch_exp          = False
 
     # --------------------------------------------------------------------------------------------------------------------
     # --- eigen decomposition ---
     # --------------------------------------------------------------------------------------------------------------------
 
     # Defaults to 10 batch of 20x20 weights matrix
-
-    prefix='tc'
+    prefix='tc/'
+    save_dir = 'results'
+    date_string = datetime.now().strftime('%Y%m%d-%H%M%S')
+    
+    batch=10
+    iters=1000
+    trials=5
+    method='exact'
+    loss_on='second_smallest'
+    mat_type='psd'
+    # texture=True # the variable for this experiment
 
     if enable_ed_random_exp:
         if exact_exp:
+            option = 'exact/'
+            save_dir = os.path.join(save_dir, date_string, prefix, option)
+            os.makedirs(save_dir, exist_ok=True)
+            
             # second smallest ev, psd matrix, texture labels
-            exact_curves, _ = EDExperiments(method='exact', loss_on='second_smallest', mat_type='psd', texture=True)
+            exact_curves, _ = EDExperiments(batch=batch, iters=iters, trials=trials,
+                                            method='exact', loss_on='second_smallest', 
+                                            mat_type='psd', texture=True)
         
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
-            plt.savefig('figures/'+prefix+'_exact_second_psd_tex.pdf', dpi=300, bbox_inches='tight')
+            plt.savefig(save_dir+f'{mat_type}_texture.pdf', dpi=300, bbox_inches='tight')
             
             # second smallest ev, psd matrix, color labels
-            exact_curves, _ = EDExperiments(method='exact', loss_on='second_smallest', mat_type='psd', texture=False)
+            exact_curves, _ = EDExperiments(batch=batch, iters=iters, trials=trials,
+                                            method='exact', loss_on='second_smallest', 
+                                            mat_type='psd', texture=False)
         
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
-            plt.savefig('figures/'+prefix+'_exact_second_psd_col.pdf', dpi=300, bbox_inches='tight')
+            plt.savefig(save_dir+f'{mat_type}_colour.pdf', dpi=300, bbox_inches='tight')
         
         if pytorch_exp:
+            option = 'torch/'
+            save_dir = os.path.join(save_dir, date_string, prefix, option)
+            os.makedirs(save_dir, exist_ok=True)
+            
             # second smallest ev, psd matrix, texture labels
-            exact_curves, _ = EDExperiments(method='pytorch', loss_on='second_smallest', mat_type='psd', texture=True)
+            exact_curves, _ = EDExperiments(batch=batch, iters=iters, trials=trials,
+                                            method='pytorch', loss_on='second_smallest', 
+                                            mat_type='psd', texture=True)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
-            plt.savefig('figures/'+prefix+'_torch_second_psd_tex.pdf', dpi=300, bbox_inches='tight')
+            plt.savefig(save_dir+f'{mat_type}_texture.pdf', dpi=300, bbox_inches='tight')
             
             # second smallest ev, psd matrix, color labels
-            exact_curves, _ = EDExperiments(method='pytorch', loss_on='second_smallest', mat_type='psd', texture=True)
+            exact_curves, _ = EDExperiments(batch=batch, iters=iters, trials=trials,
+                                            method='pytorch', loss_on='second_smallest', 
+                                            mat_type='psd', texture=False)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
-            plt.savefig('figures/'+prefix+'_torch_second_psd_tex.pdf', dpi=300, bbox_inches='tight')
+            plt.savefig(save_dir+f'{mat_type}_colour.pdf', dpi=300, bbox_inches='tight')
