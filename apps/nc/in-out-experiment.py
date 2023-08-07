@@ -173,6 +173,9 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
     from generate_dataset import texture_colour
     # from torchsummary import summary
     
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    
 
     learning_curves = [[] for i in range(trials)]
     cosine_sim_curves = [[] for i in range(trials)]
