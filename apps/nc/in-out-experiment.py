@@ -205,7 +205,7 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
         m = dim_z
         # NOTE: X_input is flattened within forward, but not here for visualisation purposes
         
-        model = EDNetwork(dim_z, m, method=method, top_k=1 if loss_on=='max' else None, matrix_type=mat_type, device='cuda')
+        model = EDNetwork(dim_z, m, method=method, top_k=1 if loss_on=='max' else None, matrix_type=mat_type).cuda()
         optimizer = torch.optim.AdamW(model.parameters(), lr=1.0e-3)
         
         # summary(model, X_input.shape)
