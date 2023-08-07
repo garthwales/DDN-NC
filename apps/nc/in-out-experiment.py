@@ -169,6 +169,56 @@ def plot_images(imgs, labels=None, row_headers=None, col_headers=None, colmns=No
         
     add_headers(fig, row_headers=row_headers, col_headers=col_headers, rotate_row_headers=False)
 
+def save_plot_imgs(image_list, labels=None, output_path='folder/', output_name='image.png', grid_size=None):
+    """
+    Plots all the images together in a grid layout and saves the plot as a single image.
+
+    Parameters:
+        image_list (list of numpy arrays): List of images as numpy arrays.
+        labels (list of str): List of labels for each image (optional). Default is None.
+        output_path (str): Path to save the output image. Default is 'output_image.png'.
+        grid_size (tuple of int): Size of the grid (rows, columns) to arrange the images. If None, it is calculated based on the number of images. Default is None.
+        square (bool): Whether to make the images square by padding if needed. Default is True.
+    """
+
+    # Calculate the grid size if not provided
+    num_images = len(image_list)
+    if grid_size is None:
+        num_rows = np.ceil(np.sqrt(num_images)).astype(int)
+        num_cols = np.ceil(num_images / num_rows).astype(int)
+    else:
+        num_rows, num_cols = grid_size
+
+    # Create the figure and axis
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(30, 30))  # Adjust the figsize if needed
+    
+    output_path = os.path.join(output_path, output_name)
+    fig.suptitle(output_name, fontsize=16)
+
+    # Iterate through each image
+    for i in range(num_rows):
+        for j in range(num_cols):
+            idx = i * num_cols + j
+            if idx < num_images:
+                image = image_list[idx]
+
+                # Show the image
+                axs[i, j].imshow(image)
+                axs[i, j].axis('off')
+
+                # Add label if provided
+                if labels is not None and idx < len(labels):
+                    axs[i, j].set_title(labels[idx])
+
+    # Remove any remaining empty subplots
+    for idx in range(num_images, num_rows * num_cols):
+        fig.delaxes(axs.flatten()[idx])
+
+    # Save the plot to a file
+    plt.tight_layout()  # Adjust spacing and layout
+    plt.savefig(output_path, bbox_inches='tight', pad_inches=0.1, dpi=300)  # Adjust dpi if needed
+    plt.close()
+
 def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorch', loss_on='second_smallest', mat_type='psd', texture=True):
     from generate_dataset import texture_colour
     # from torchsummary import summary
@@ -185,8 +235,10 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
     
     size=(28,28)
     
+    device = torch.device(f'cuda:{1}' if torch.cuda.is_available() else 'cpu')
+    
     if True:
-        X_input = load_images_from_directory('data/tc/img/', num=batch, size=size).cuda()
+        X_input = load_images_from_directory('data/tc/img/', num=batch, size=size).to(device)
         if texture:
             Q_true = load_images_from_directory('data/tc/maskT', num=batch, size=size)
         else:
@@ -195,7 +247,9 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
         # TODO: bw experiment here
         return
     
-    Q_true = Q_true.flatten(start_dim=1).cuda() # Flatten to match flat outputs...
+    Q_true = Q_true.flatten(start_dim=1).to(device) # Flatten to match flat outputs...
+    
+
 
     for trial in range(trials):
         # prepare data and model
@@ -205,7 +259,8 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
         m = dim_z
         # NOTE: X_input is flattened within forward, but not here for visualisation purposes
         
-        model = EDNetwork(dim_z, m, method=method, top_k=1 if loss_on=='max' else None, matrix_type=mat_type).cuda()
+        
+        model = EDNetwork(dim_z, m, method=method, top_k=1 if loss_on=='max' else None, matrix_type=mat_type).to(device)
         optimizer = torch.optim.AdamW(model.parameters(), lr=1.0e-3)
         
         # summary(model, X_input.shape)
@@ -227,6 +282,8 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorc
             elif loss_on == 'second_smallest':
                 # NOTE: for the stuff from anu it would be Q_true[:,:,1] as it is assuming output is including everything
                 loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 1], Q_true))) # second smallest
+                if i % 10 == 0:
+                    save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().numpy(), output_name=f'iters-{iters}-loss-{i}.png', output_path='figures/')
             else:
                 assert False, "loss_on must be one of ('all', 'max', 'min', 'second_smallest)"
             learning_curves[trial].append(float(loss.item()))
