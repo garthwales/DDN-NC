@@ -71,18 +71,23 @@ class EDNetwork(nn.Module):
         else:
             assert False, "unknown matrix_type"
 
-        if self.method == 'pytorch':
-            x = 0.5 * (x + x.transpose(1, 2))
-            v, y = torch.linalg.eigh(x)
-        elif self.method == 'exact':
-            y = EigenDecompositionFcn().apply(x, self.top_k)
-        else:
-            assert False
-
+        try:
+            if self.method == 'pytorch':
+                x = 0.5 * (x + x.transpose(1, 2))
+                v, y = torch.linalg.eigh(x)
+            elif self.method == 'exact':
+                y = EigenDecompositionFcn().apply(x, self.top_k)
+            else:
+                assert False
+        except:
+            date_string = datetime.now().strftime('%Y%m%d-%H%M%S')
+            torch.save(x, f'eigh-illconditioned-{date_string}.pth')
+            print(f'ill-conditioned input saved to eigh-illconditioned-{date_string}.pth')
+            raise
         return y
 
 
-def EDExperiments(batch=10, iters=1000, trials=5, method='exact', loss_on='second_smallest', mat_type='psd', texture=True):
+def EDExperiments(batch=10, iters=1000, trials=5, method='exact', loss_on='second_smallest', mat_type='psd', texture=True, output_folder='figures/'):
     from generate_dataset import texture_colour
     # from torchsummary import summary
     
@@ -133,7 +138,16 @@ def EDExperiments(batch=10, iters=1000, trials=5, method='exact', loss_on='secon
         # do optimisation
         for i in range(iters):
             optimizer.zero_grad(set_to_none=True)
-            Q_pred = model(X_input)
+            try:
+                Q_pred = model(X_input)
+            except KeyboardInterrupt:
+                torch.save(model.state_dict(), 'INTERRUPTED.pth')
+                print('Saved interrupt to INTERRUPTED.pth')
+                raise
+            except:
+                break                
+            
+                
             if loss_on == 'all':
                 loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred, Q_true, dim=1))) # all ev
             elif loss_on == 'max':
@@ -144,7 +158,8 @@ def EDExperiments(batch=10, iters=1000, trials=5, method='exact', loss_on='secon
                 # NOTE: for the stuff from anu it would be Q_true[:,:,1] as it is assuming output is including everything
                 loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 1], Q_true))) # second smallest
                 if i % 20 == 0:
-                    save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().cpu().numpy(), output_name=f'{method}-{loss_on}-{mat_type}-tex-{texture}-iters-{iters}-loss-{i}.png', output_path='figures/')
+                    name = f'iters-{iters}-loss-{i}.png'
+                    save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().cpu().numpy(), output_name=name, output_path=output_folder)
             else:
                 assert False, "loss_on must be one of ('all', 'max', 'min', 'second_smallest)"
             learning_curves[trial].append(float(loss.item()))
@@ -181,7 +196,7 @@ if __name__ == '__main__':
 
     # Defaults to 10 batch of 20x20 weights matrix
     prefix='tc/'
-    save_dir = 'results'
+    save_dir = 'figures'
     date_string = datetime.now().strftime('%Y%m%d-%H%M%S')
     
     batch=10
@@ -201,7 +216,8 @@ if __name__ == '__main__':
             # second smallest ev, psd matrix, texture labels
             exact_curves, _ = EDExperiments(batch=batch, iters=iters, trials=trials,
                                             method='exact', loss_on='second_smallest', 
-                                            mat_type='psd', texture=True)
+                                            mat_type='psd', texture=True,
+                                            output_folder=save_dir)
         
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
@@ -210,7 +226,8 @@ if __name__ == '__main__':
             # second smallest ev, psd matrix, color labels
             exact_curves, _ = EDExperiments(batch=batch, iters=iters, trials=trials,
                                             method='exact', loss_on='second_smallest', 
-                                            mat_type='psd', texture=False)
+                                            mat_type='psd', texture=False,
+                                            output_folder=save_dir)
         
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
@@ -224,7 +241,8 @@ if __name__ == '__main__':
             # second smallest ev, psd matrix, texture labels
             exact_curves, _ = EDExperiments(batch=batch, iters=iters, trials=trials,
                                             method='pytorch', loss_on='second_smallest', 
-                                            mat_type='psd', texture=True)
+                                            mat_type='psd', texture=True,
+                                            output_folder=save_dir)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
@@ -233,7 +251,8 @@ if __name__ == '__main__':
             # second smallest ev, psd matrix, color labels
             exact_curves, _ = EDExperiments(batch=batch, iters=iters, trials=trials,
                                             method='pytorch', loss_on='second_smallest', 
-                                            mat_type='psd', texture=False)
+                                            mat_type='psd', texture=False,
+                                            output_folder=save_dir)
 
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
