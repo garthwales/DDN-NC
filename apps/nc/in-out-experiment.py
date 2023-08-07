@@ -38,13 +38,13 @@ class EDNetwork(nn.Module):
         self.matrix_type = matrix_type
 
         self.mlp = nn.Sequential(
-            nn.Linear(dim_z, 20),
+            nn.Linear(dim_z, 1000),
             nn.ReLU(),
-            nn.Linear(20, 20),
+            nn.Linear(1000, 1000),
             nn.ReLU(),
-            nn.Linear(20, 20),
+            nn.Linear(1000, 1000),
             nn.ReLU(),
-            nn.Linear(20, 20),
+            nn.Linear(1000, 20),
             nn.ReLU(),
             nn.Linear(20, m * m)
         )
@@ -169,7 +169,7 @@ def plot_images(imgs, labels=None, row_headers=None, col_headers=None, colmns=No
         
     add_headers(fig, row_headers=row_headers, col_headers=col_headers, rotate_row_headers=False)
 
-def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='exact', loss_on='second_smallest', mat_type='general', texture=True):
+def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='pytorch', loss_on='second_smallest', mat_type='psd', texture=True):
     from generate_dataset import texture_colour
     # from torchsummary import summary
     
@@ -191,6 +191,8 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='exact'
     else:
         # TODO: bw experiment here
         return
+    
+    Q_true = Q_true.flatten(start_dim=1) # Flatten to match flat outputs...
 
     for trial in range(trials):
         # prepare data and model
@@ -220,7 +222,8 @@ def EDExperiments(dim_z=20, m=20, batch=10, iters=200, trials=10, method='exact'
             elif loss_on == 'min':
                 loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 0], Q_true[:, :, 0]))) # smallest
             elif loss_on == 'second_smallest':
-                loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 1], Q_true[:, :, 1]))) # second smallest
+                # NOTE: for the stuff from anu it would be Q_true[:,:,1] as it is assuming output is including everything
+                loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 1], Q_true))) # second smallest
             else:
                 assert False, "loss_on must be one of ('all', 'max', 'min', 'second_smallest)"
             learning_curves[trial].append(float(loss.item()))
