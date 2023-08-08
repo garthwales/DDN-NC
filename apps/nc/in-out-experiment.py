@@ -27,14 +27,11 @@ def NCExperiments(batch=10, iters=1000, trials=5,
     
     size=(28,28)
     
-    device = torch.device(f'cuda:0' if torch.cuda.is_available() else 'cpu') 
+    device = torch.device(f'cuda:1' if torch.cuda.is_available() else 'cpu') 
     # or f'cuda:{args.gpu}' or 'cuda:1'
-
-    # torch.cuda.set_device(device)
-    # torch.cuda.empty_cache()
     
     if True:
-        X_input = load_images_from_directory('data/tc/img/', num=batch, size=size).to(device)
+        X_input = load_images_from_directory('data/tc/img/', num=batch, size=size)
         if texture:
             Q_true = load_images_from_directory('data/tc/maskT', num=batch, size=size)
         else:
@@ -43,25 +40,34 @@ def NCExperiments(batch=10, iters=1000, trials=5,
         # TODO: bw experiment here
         return
     
-    Q_true = Q_true.flatten(start_dim=1).to(device) # Flatten to match flat outputs...
+    
+    
+    dim_z = X_input.shape[1] * X_input.shape[2] 
+    m = dim_z
+    
+    Q_true = Q_true.flatten(start_dim=1) # Flatten to match flat outputs...
+    X_input = X_input.flatten(start_dim=1) # Flatten to match linear layers? IDK
+        
+    
+    print(device)
+    print(f'{dim_z}-{m}-{method}-{mat_type}')
+    
+    # TODO: change top_k if second smallest is selected..
+    # TODO: change top_k if smallest is selected..?
+    # TODO: test max without top_k set?
+    
+    model = EDNetwork(dim_z, m, method=method, matrix_type=mat_type)
+    
+    with torch.cuda.device(device):
+        torch.cuda.empty_cache()
+        X_input = X_input.to(device)
+        Q_true = Q_true.to(device)
+            
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1.0e-3)
     
     for trial in range(trials):
         # prepare data and model
         torch.manual_seed(22 + trial)
-
-        dim_z = X_input.shape[1] * X_input.shape[2] 
-        m = dim_z
-        # NOTE: X_input is flattened within forward, but not here for visualisation purposes
-        
-        
-        model = EDNetwork(dim_z, m, method=method, top_k=1 if loss_on=='max' else None, matrix_type=mat_type).to(device)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=1.0e-3)
-        
-        # summary(model, X_input.shape)
-
-        # TODO: change top_k if second smallest is selected..
-        # TODO: change top_k if smallest is selected..?
-        # TODO: test max without top_k set?
 
         # do optimisation
         for i in range(iters):
@@ -75,17 +81,10 @@ def NCExperiments(batch=10, iters=1000, trials=5,
             except:
                 break                
             
-                
-            if loss_on == 'all':
-                loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred, Q_true, dim=1))) # all ev
-            elif loss_on == 'max':
-                loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, -1], Q_true[:, :, -1]))) # largest
-            elif loss_on == 'min':
-                loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 0], Q_true[:, :, 0]))) # smallest
-            elif loss_on == 'second_smallest':
+            if loss_on == 'second_smallest':
                 # NOTE: for the stuff from anu it would be Q_true[:,:,1] as it is assuming output is including everything
                 loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 1], Q_true))) # second smallest
-                if i % 20 == 0:
+                if i % 100 == 0:
                     name = f'trial-{trial}-iter-{i}.png'
                     save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().cpu().numpy(), output_name=name, output_path=output_folder)
             else:
@@ -140,6 +139,8 @@ if __name__ == '__main__':
             option = 'exact/'
             save_dir = os.path.join(base_dir, date_string, prefix, option)
             os.makedirs(save_dir, exist_ok=True)
+            
+            # TODO: here or in experiements.. but write a txt with all the params included..
             
             # second smallest ev, psd matrix, texture labels
             exact_curves, _ = NCExperiments(batch=batch, iters=iters, trials=trials,
