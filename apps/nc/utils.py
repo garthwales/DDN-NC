@@ -7,6 +7,17 @@ import matplotlib.pyplot as plt
 
 from torchvision import transforms
 
+def PlotResults(exact_curves, fcn=plt.semilogy):
+    """plot results of experiments. (from anu paper)"""
+    exact_mean = np.mean(exact_curves, axis=0)
+
+    fcn(exact_mean, 'b')
+    for trial in range(len(exact_curves)):
+        fcn(exact_curves[trial], 'b', alpha=0.1)
+    fcn(exact_mean, 'b')
+    plt.xlabel('iter.')
+    plt.ylabel('loss')
+
 # Function to load all images from a directory and convert to PyTorch tensors
 def load_images_from_directory(directory, num=10, size=(28,28)):
     
