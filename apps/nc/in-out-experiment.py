@@ -27,8 +27,11 @@ def NCExperiments(batch=10, iters=1000, trials=5,
     
     size=(28,28)
     
-    device = torch.device(f'cuda' if torch.cuda.is_available() else 'cpu') 
+    device = torch.device(f'cuda:0' if torch.cuda.is_available() else 'cpu') 
     # or f'cuda:{args.gpu}' or 'cuda:1'
+
+    # torch.cuda.set_device(device)
+    # torch.cuda.empty_cache()
     
     if True:
         X_input = load_images_from_directory('data/tc/img/', num=batch, size=size).to(device)
