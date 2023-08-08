@@ -1,122 +1,94 @@
-import numpy as np
-from datetime import datetime
 import torch
 import torch.nn as nn
 
+from datetime import datetime
 from eigen import EigenDecompositionFcn
 
-class EDNetwork(nn.Module):
-    """Example eigen decomposition network comprising a MLP data processing layer followed by a
-    differentiable eigen decomposition layer. Input is (B, Z, 1); output is (B, M, M)."""
-
-    def __init__(self, dim_z, m, method='exact', top_k=None, matrix_type='psd'):
-        super(EDNetwork, self).__init__()
-
-        self.dim_z = dim_z
-        self.m = m
-        self.method = method
-        self.top_k = None # TODO: use this (or something similar) to test further..
-        self.matrix_type = matrix_type
-
-        self.mlp = nn.Sequential(
-            nn.Linear(dim_z, 1000),
-            nn.ReLU(),
-            nn.Linear(1000, 1000),
-            nn.ReLU(),
-            nn.Linear(1000, 1000),
-            nn.ReLU(),
-            nn.Linear(1000, 20),
-            nn.ReLU(),
-            nn.Linear(20, m * m)
-        )
-
-    def forward(self, z):
-        # assumes has been flattened        
-        x = self.mlp(z)
-        x = torch.reshape(x, (z.shape[0], self.m, self.m))
-
-        if self.matrix_type == 'general':
-            pass
-        elif self.matrix_type == 'psd':
-            x = torch.matmul(x, x.transpose(1, 2)) # positive definite
-        elif self.matrix_type == 'rank1':
-            u = x
-            x = torch.matmul(u[:, :, 0], u[:, :, 0].transpose(1, 2))
-        else:
-            assert False, "unknown matrix_type"
-
-        try:
-            if self.method == 'pytorch':
-                x = 0.5 * (x + x.transpose(1, 2))
-                v, y = torch.linalg.eigh(x)
-            elif self.method == 'exact':
-                y = EigenDecompositionFcn().apply(x, self.top_k)
-            else:
-                assert False
-        except:
-            date_string = datetime.now().strftime('%Y%m%d-%H%M%S')
-            torch.save(x, f'eigh-illconditioned-{date_string}.pth')
-            print(f'ill-conditioned input saved to eigh-illconditioned-{date_string}.pth')
-            raise
-        return y
-    
-class EDNetwork2(nn.Module):
-    # TODO: make this into UNet..
-    
-    
-    """Example eigen decomposition network comprising a UNet data processing layer followed by a
-    differentiable eigen decomposition layer. Input is (B, Z, 1); output is (B, M, M)."""
-
-    def __init__(self, dim_z, m, method='exact', top_k=None, matrix_type='psd'):
-        super(EDNetwork, self).__init__()
-
-        self.dim_z = dim_z
-        self.m = m
-        self.method = method
-        self.top_k = None # TODO: use this (or something similar) to test further..
-        self.matrix_type = matrix_type
-
-        self.mlp = nn.Sequential(
-            nn.Linear(dim_z, 1000),
-            nn.ReLU(),
-            nn.Linear(1000, 1000),
-            nn.ReLU(),
-            nn.Linear(1000, 1000),
-            nn.ReLU(),
-            nn.Linear(1000, 20),
-            nn.ReLU(),
-            nn.Linear(20, m * m)
-        )
-
-    def forward(self, z):
-        # construct input for declarative node
-        z = z.flatten(start_dim=1) # bxnxn -> bxdim_z
-        # assert z.shape[1] == self.dim_z
+class GenericNC(nn.Module):
+    def __init__(self, net, n, 
+                 net_name = 'unspecified', matrix_type='psd',
+                 method='exact'):
+        # TODO: could add more params like conditioning... vec flip options...
+        super(GenericNC, self).__init__()
         
-        x = self.mlp(z)
-        x = torch.reshape(x, (z.shape[0], self.m, self.m))
+        # pre-nc network
+        self.net = net 
 
+        # based on input image size of n,n 
+        # so output of netis n*n,n*n
+        # and output after eig is n,n
+        self.n = n 
+        
+        self.net_name = net_name
+        self.matrix_type = matrix_type # general, psd
+        self.method = method # exact, pytorch
+        
+        
+    def forward(self, z):
+        # pre-nc network
+        x = self.net(z) # output b, n*n
+        # TODO: force a relu here? make it always positive inputs into next?
+        
+        # make square b,n,n
+        x = torch.reshape(x, (z.shape[0], self.n, self.n)) 
+        
+        # re-format square matrix into specified type
         if self.matrix_type == 'general':
             pass
         elif self.matrix_type == 'psd':
-            x = torch.matmul(x, x.transpose(1, 2)) # positive definite
-        elif self.matrix_type == 'rank1':
-            u = x
-            x = torch.matmul(u[:, :, 0], u[:, :, 0].transpose(1, 2))
+            x = torch.matmul(x, x.transpose(1, 2)) # x = x @ x.T
         else:
             assert False, "unknown matrix_type"
-
+            
+        # NOTE: 0.5 * (X + X.transpose(1, 2))
+        #       is done before doing either of the eigensolvers no matter what
+        #       maybe that should be done with matrix_type?
         try:
             if self.method == 'pytorch':
                 x = 0.5 * (x + x.transpose(1, 2))
                 v, y = torch.linalg.eigh(x)
             elif self.method == 'exact':
-                y = EigenDecompositionFcn().apply(x, self.top_k)
+                y = EigenDecompositionFcn().apply(x)
             else:
                 assert False
-        except:
+        except Exception as err:
             date_string = datetime.now().strftime('%Y%m%d-%H%M%S')
-            torch.save(x, f'eigh-illconditioned-{date_string}.pth')
-            print(f'ill-conditioned input saved to eigh-illconditioned-{date_string}.pth')
+            torch.save(x, f'{date_string}-{err}.pth')
+            print(f'{date_string}-{err}.pth')
             raise
+        
         return y
+
+class BasicMLP(nn.Module):
+    """ Multi-layer perceptron to pass before NC. """
+
+    def __init__(self, dim_z, m, k=1000, j=20):
+        """_summary_
+
+        Args:
+            dim_z (int): input size (e.g. b,c,n,n -> dim_z = c*n*n)
+            m (int): output is a m*m weight matrix
+            k (int, optional): linear layers size. Defaults to 1000.
+            j (int, optional): last linear layers size to avoid too many parameters. Defaults to 20.
+        """
+        super(BasicMLP, self).__init__()
+
+        self.dim_z = dim_z
+        self.m = m
+        
+        self.mlp = nn.Sequential(
+            nn.Linear(dim_z, k),
+            nn.ReLU(),
+            nn.Linear(k, k),
+            nn.ReLU(),
+            nn.Linear(k, k),
+            nn.ReLU(),
+            nn.Linear(k, j),
+            nn.ReLU(),
+            nn.Linear(j, m * m)
+        )
+
+    def forward(self, z):
+        """ Assumes input is b,n,n """
+        z = z.flatten(start_dim=1)
+        return self.mlp(z)
