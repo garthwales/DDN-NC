@@ -17,7 +17,7 @@ class EigenDecompositionFcn(torch.autograd.Function):
             lmd, Y = torch.linalg.eigh(0.5 * (X + X.transpose(1, 2)))
 
         ctx.save_for_backward(lmd, Y)
-        return Y if top_k is None else Y[:, :, -top_k:]
+        return Y if top_k is None else Y[:, :, -top_k:] # TODO: only return the second smallest for NC
 
     @staticmethod
     def backward(ctx, dJdY):
