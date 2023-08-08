@@ -113,7 +113,7 @@ if __name__ == '__main__':
     enable_ed_random_exp = True
     # -- sub experiments vvvvvv
     exact_exp            = True
-    pytorch_exp          = True
+    pytorch_exp          = False
 
     # --------------------------------------------------------------------------------------------------------------------
     # --- normalized cuts ---
@@ -124,9 +124,9 @@ if __name__ == '__main__':
     os.makedirs(base_dir, exist_ok=True)
     date_string = datetime.now().strftime('%Y%m%d-%H%M%S')
     
-    batch=10
-    iters=1000
-    trials=5
+    batch=100
+    iters=2000
+    trials=1
     method='exact'
     loss_on='second_smallest'
     mat_type='psd'
