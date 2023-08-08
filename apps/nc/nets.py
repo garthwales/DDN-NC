@@ -31,10 +31,7 @@ class EDNetwork(nn.Module):
         )
 
     def forward(self, z):
-        # construct input for declarative node
-        z = z.flatten(start_dim=1) # bxnxn -> bxdim_z
-        # assert z.shape[1] == self.dim_z
-        
+        # assumes has been flattened        
         x = self.mlp(z)
         x = torch.reshape(x, (z.shape[0], self.m, self.m))
 
