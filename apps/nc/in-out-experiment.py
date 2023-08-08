@@ -59,7 +59,7 @@ def NCExperiments(batch=10, iters=1000, trials=5,
     model = EDNetwork(dim_z, m, method=method, matrix_type=mat_type)
     
     with torch.cuda.device(device):
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
         X_input = X_input.to(device)
         Q_true = Q_true.to(device)
             
