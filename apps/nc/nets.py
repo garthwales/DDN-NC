@@ -53,7 +53,7 @@ class GenericNC(nn.Module):
                 assert False
         except Exception as err:
             date_string = datetime.now().strftime('%Y%m%d-%H%M%S')
-            torch.save(x, f'{date_string}-{err}.pth')
+            torch.save(x, f'{date_string}-{type(err).__name__}.pth')
             print(f'{date_string}-{err}.pth')
             raise
         
