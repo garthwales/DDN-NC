@@ -147,3 +147,88 @@ def save_plot_imgs(image_list, labels=None, output_path='folder/', output_name='
     plt.tight_layout()  # Adjust spacing and layout
     plt.savefig(output_path, bbox_inches='tight', pad_inches=0.1, dpi=300)  # Adjust dpi if needed
     plt.close()
+
+def test_cpu_gpu_eigh():
+    # TODO: this but like the reddit linked in my onenote? or the pytorch forum one idk don't spend too much time..
+    #       and try it for different sizes 
+    #       e.g. (low batch, small), (big batch, small), (low batch, big), (big batch, big)
+    return
+
+def addDiagonal(X, c = 1):
+	""" Add c to diagonal of matrix """
+	n = X.shape[0]
+	X.flat[::n+1] += c # flat gives an iterable, n operations only
+
+
+def setDiagonal(X, c = 1):
+	""" Set c to diagonal of matrix """
+	n = X.shape[0]
+	X.flat[::n+1] = c # flat gives an iterable, n operations only
+ 
+def eig_flip(V):
+    """
+    Flips the signs of V for Eigendecomposition in order to 
+    force deterministic output.
+
+    Follows Sklearn convention by looking at V's maximum in columns
+    as default. NOTE: May not actually work?
+    """
+    max_abs_rows = abs(V).argmax(0)
+    signs = np.sign(V[max_abs_rows, np.arange(V.shape[1]) ] )
+    V *= signs
+    return V
+
+def anu_eig_flip(u, uniform_solution_method='positive', u_ref=None):
+    """ 
+    ANU's eig flip method, could be made more efficient?
+    NOTE: test this
+    
+    u_ref: can utilise last iterations 'u' so it is consistent
+    """
+    batch, m, n = u.shape
+    direction_factor = 1.0
+
+    if uniform_solution_method != 'skip':
+        if u_ref is None:
+            u_ref = u.new_ones(1, m, 1).detach()
+
+        direction = torch.einsum('bmk,bmn->bkn', u_ref, u)
+
+        if u_ref.shape[2] == n:
+            direction = torch.diagonal(direction, dim1=1, dim2=2).view(batch, 1, n)
+
+        if uniform_solution_method == 'positive':
+            direction_factor = (direction >= 0).float()
+        elif uniform_solution_method == 'negative':
+            direction_factor = (direction <= 0).float()
+
+    u = u * (direction_factor - 0.5) * 2
+
+    return u
+
+def converge_better_wrapper(X, alpha=None,func=torch.linalg.eigh):
+    ALPHA_DEFAULT = 0.00001
+    old_alpha = 0
+    
+    alpha = ALPHA_DEFAULT if alpha is None else alpha
+    
+    
+    complete = False
+    while not complete:
+        addDiagonal(X, alpha-old_alpha)
+        try:
+            u,v = func(X)
+            complete = True
+        except:
+            old_alpha = alpha
+            alpha *= 10
+            
+    addDiagonal(X, -alpha)
+    v = eig_flip(v)
+    
+    return u,v
+        
+        
+        
+    
+    

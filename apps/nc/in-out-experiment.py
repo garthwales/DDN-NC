@@ -3,13 +3,12 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import torch
 import os
-import torch.nn as nn
 
+from generate_dataset import texture_colour
+from nets import EDNetwork
 from utils import *
 
 plt.rcParams.update({'font.size': 20})
-
-os.makedirs("figures", exist_ok=True)
 
 def PlotResults(exact_curves, fcn=plt.semilogy):
     """plot results of experiments."""
@@ -23,77 +22,13 @@ def PlotResults(exact_curves, fcn=plt.semilogy):
     plt.ylabel('loss')
 
 # --------------------------------------------------------------------------------------------------------------------
-# --- eigen decomposition ---
+# --- normalized cuts (2nd smallest eigenvector) ---
 # --------------------------------------------------------------------------------------------------------------------
 
-from eigen import EigenDecompositionFcn
-
-class EDNetwork(nn.Module):
-    """Example eigen decomposition network comprising a MLP data processing layer followed by a
-    differentiable eigen decomposition layer. Input is (B, Z, 1); output is (B, M, M)."""
-
-    def __init__(self, dim_z, m, method='exact', top_k=None, matrix_type='psd'):
-        super(EDNetwork, self).__init__()
-
-        self.dim_z = dim_z
-        self.m = m
-        self.method = method
-        self.top_k = None # TODO: use this (or something similar) to test further..
-        self.matrix_type = matrix_type
-
-        self.mlp = nn.Sequential(
-            nn.Linear(dim_z, 1000),
-            nn.ReLU(),
-            nn.Linear(1000, 1000),
-            nn.ReLU(),
-            nn.Linear(1000, 1000),
-            nn.ReLU(),
-            nn.Linear(1000, 20),
-            nn.ReLU(),
-            nn.Linear(20, m * m)
-        )
-
-    def forward(self, z):
-        # construct input for declarative node
-        z = z.flatten(start_dim=1) # bxnxn -> bxdim_z
-        # assert z.shape[1] == self.dim_z
-        
-        x = self.mlp(z)
-        x = torch.reshape(x, (z.shape[0], self.m, self.m))
-
-        if self.matrix_type == 'general':
-            pass
-        elif self.matrix_type == 'psd':
-            x = torch.matmul(x, x.transpose(1, 2)) # positive definite
-        elif self.matrix_type == 'rank1':
-            u = x
-            x = torch.matmul(u[:, :, 0], u[:, :, 0].transpose(1, 2))
-        else:
-            assert False, "unknown matrix_type"
-
-        try:
-            if self.method == 'pytorch':
-                x = 0.5 * (x + x.transpose(1, 2))
-                v, y = torch.linalg.eigh(x)
-            elif self.method == 'exact':
-                y = EigenDecompositionFcn().apply(x, self.top_k)
-            else:
-                assert False
-        except:
-            date_string = datetime.now().strftime('%Y%m%d-%H%M%S')
-            torch.save(x, f'eigh-illconditioned-{date_string}.pth')
-            print(f'ill-conditioned input saved to eigh-illconditioned-{date_string}.pth')
-            raise
-        return y
-
-
-def EDExperiments(batch=10, iters=1000, trials=5, method='exact', loss_on='second_smallest', mat_type='psd', texture=True, output_folder='figures/'):
-    from generate_dataset import texture_colour
-    # from torchsummary import summary
-    
-    # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-    
+def NCExperiments(batch=10, iters=1000, trials=5, 
+                  method='exact', loss_on='second_smallest', mat_type='psd', 
+                  texture=True, output_folder='figures/'):
+    """ Runs nc experiments """
 
     learning_curves = [[] for i in range(trials)]
     cosine_sim_curves = [[] for i in range(trials)]
@@ -103,7 +38,8 @@ def EDExperiments(batch=10, iters=1000, trials=5, method='exact', loss_on='secon
     
     size=(28,28)
     
-    device = torch.device(f'cuda:1' if torch.cuda.is_available() else 'cpu') # or f'cuda:{args.gpu}' etc
+    device = torch.device(f'cuda' if torch.cuda.is_available() else 'cpu') 
+    # or f'cuda:{args.gpu}' or 'cuda:1'
     
     if True:
         X_input = load_images_from_directory('data/tc/img/', num=batch, size=size).to(device)
@@ -161,7 +97,7 @@ def EDExperiments(batch=10, iters=1000, trials=5, method='exact', loss_on='secon
                     name = f'trial-{trial}-iter-{i}.png'
                     save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().cpu().numpy(), output_name=name, output_path=output_folder)
             else:
-                assert False, "loss_on must be one of ('all', 'max', 'min', 'second_smallest)"
+                assert False, "loss_on must be one of ('all', 'max', 'min', 'second_smallest)" 
             learning_curves[trial].append(float(loss.item()))
             loss.backward()
             optimizer.step()
@@ -191,12 +127,12 @@ if __name__ == '__main__':
     pytorch_exp          = True
 
     # --------------------------------------------------------------------------------------------------------------------
-    # --- eigen decomposition ---
+    # --- normalized cuts ---
     # --------------------------------------------------------------------------------------------------------------------
 
-    # Defaults to 10 batch of 20x20 weights matrix
     prefix='tc/'
-    save_dir = 'figures'
+    base_dir = 'figures'
+    os.makedirs(base_dir, exist_ok=True)
     date_string = datetime.now().strftime('%Y%m%d-%H%M%S')
     
     batch=10
@@ -210,11 +146,11 @@ if __name__ == '__main__':
     if enable_ed_random_exp:
         if exact_exp:
             option = 'exact/'
-            save_dir = os.path.join(save_dir, date_string, prefix, option)
+            save_dir = os.path.join(base_dir, date_string, prefix, option)
             os.makedirs(save_dir, exist_ok=True)
             
             # second smallest ev, psd matrix, texture labels
-            exact_curves, _ = EDExperiments(batch=batch, iters=iters, trials=trials,
+            exact_curves, _ = NCExperiments(batch=batch, iters=iters, trials=trials,
                                             method='exact', loss_on='second_smallest', 
                                             mat_type='psd', texture=True,
                                             output_folder=save_dir)
@@ -224,7 +160,7 @@ if __name__ == '__main__':
             plt.savefig(save_dir+f'{mat_type}_texture.pdf', dpi=300, bbox_inches='tight')
             
             # second smallest ev, psd matrix, color labels
-            exact_curves, _ = EDExperiments(batch=batch, iters=iters, trials=trials,
+            exact_curves, _ = NCExperiments(batch=batch, iters=iters, trials=trials,
                                             method='exact', loss_on='second_smallest', 
                                             mat_type='psd', texture=False,
                                             output_folder=save_dir)
@@ -235,11 +171,11 @@ if __name__ == '__main__':
         
         if pytorch_exp:
             option = 'torch/'
-            save_dir = os.path.join(save_dir, date_string, prefix, option)
+            save_dir = os.path.join(base_dir, date_string, prefix, option)
             os.makedirs(save_dir, exist_ok=True)
             
             # second smallest ev, psd matrix, texture labels
-            exact_curves, _ = EDExperiments(batch=batch, iters=iters, trials=trials,
+            exact_curves, _ = NCExperiments(batch=batch, iters=iters, trials=trials,
                                             method='pytorch', loss_on='second_smallest', 
                                             mat_type='psd', texture=True,
                                             output_folder=save_dir)
@@ -249,7 +185,7 @@ if __name__ == '__main__':
             plt.savefig(save_dir+f'{mat_type}_texture.pdf', dpi=300, bbox_inches='tight')
             
             # second smallest ev, psd matrix, color labels
-            exact_curves, _ = EDExperiments(batch=batch, iters=iters, trials=trials,
+            exact_curves, _ = NCExperiments(batch=batch, iters=iters, trials=trials,
                                             method='pytorch', loss_on='second_smallest', 
                                             mat_type='psd', texture=False,
                                             output_folder=save_dir)
