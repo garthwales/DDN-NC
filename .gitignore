@@ -106,3 +106,4 @@ venv.bak/
 *.pdf
 data/
 .DS_Store
+figures/
