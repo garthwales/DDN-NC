@@ -6,10 +6,9 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
-from torchvision import transforms
 
 from utils.data_loading import BasicDataset
-from unet import UNet
+from nets.unet import UNet
 from utils.utils import plot_img_and_mask
 
 def predict_img(net,
@@ -83,7 +82,7 @@ if __name__ == '__main__':
     in_files = args.input
     out_files = get_output_filenames(args)
 
-    net = UNet(n_channels=3, n_classes=args.classes, bilinear=args.bilinear)
+    net = UNet(n_channels=3, n_classes=args.classes)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Loading model {args.model}')
