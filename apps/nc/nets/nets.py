@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from datetime import datetime
-from eigen import EigenDecompositionFcn
+from nets.eigen import EigenDecompositionFcn
 
 class GenericNC(nn.Module):
     def __init__(self, net, n, 
