@@ -100,7 +100,7 @@ def NCExperiments(args, output_folder):
 if __name__ == '__main__':
     args = dict(
         gpu=1,
-        batch=100, 
+        batch=50, 
         iters=2000, 
         trials=5, 
         method='exact',
@@ -108,7 +108,7 @@ if __name__ == '__main__':
         loss_on='second_smallest',
         net='UNet',
         
-        size = (100,100),
+        size = (28,28),
         lr=1e-4,
         grayscale=False,
         
