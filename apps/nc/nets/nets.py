@@ -98,8 +98,8 @@ class BasicCNN(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
-        self.fc1 = nn.Linear(256 * n * n, n*n * n*n)
+        self.conv3 = nn.Conv2d(in_channels=128, out_channels=1, kernel_size=3, stride=1, padding=1)
+        self.fc1 = nn.Linear(1 * n * n, n*n * n*n)
 
     def forward(self, x):
         x = torch.relu(self.conv1(x))
