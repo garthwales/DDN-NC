@@ -107,7 +107,7 @@ class UNet(nn.Module):
         # Double convolution layers for the contracting path.
         # The number of features gets doubled at each step starting from $64$.
         self.down_conv = nn.ModuleList([DoubleConvolution(i, o) for i, o in
-                                        [(in_channels, 64), (64, 128), (128, 256), (256)]])
+                                        [(in_channels, 64), (64, 128), (128, 256)]])
         # Down sampling layers for the contracting path
         self.down_sample = nn.ModuleList([DownSample() for _ in range(4)])
 
