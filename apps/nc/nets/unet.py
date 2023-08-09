@@ -107,27 +107,28 @@ class UNet(nn.Module):
         # Double convolution layers for the contracting path.
         # The number of features gets doubled at each step starting from $64$.
         self.down_conv = nn.ModuleList([DoubleConvolution(i, o) for i, o in
-                                        [(in_channels, 64), (64, 128), (128, 256)]])
+                                        [(in_channels, 64), (64, 128), (128, 256), (256, 512)]])
         # Down sampling layers for the contracting path
         self.down_sample = nn.ModuleList([DownSample() for _ in range(4)])
 
         # The two convolution layers at the lowest resolution (the bottom of the U).
-        self.middle_conv = DoubleConvolution(256, 512)
+        self.middle_conv = DoubleConvolution(512, 1024)
 
         # Up sampling layers for the expansive path.
         # The number of features is halved with up-sampling.
         self.up_sample = nn.ModuleList([UpSample(i, o) for i, o in
-                                        [(512, 256), (256, 128), (128, 64)]])
+                                        [(1024, 512), (512, 256), (256, 128), (128, 64)]])
         # Double convolution layers for the expansive path.
         # Their input is the concatenation of the current feature map and the feature map from the
         # contracting path. Therefore, the number of input features is double the number of features
         # from up-sampling.
         self.up_conv = nn.ModuleList([DoubleConvolution(i, o) for i, o in
-                                      [(512, 256), (256, 128), (128, 64)]])
+                                      [(1024, 512), (512, 256), (256, 128), (128, 64)]])
         # Crop and concatenate layers for the expansive path.
         self.concat = nn.ModuleList([CropAndConcat() for _ in range(4)])
         # Final $1 \times 1$ convolution layer to produce the output
         self.final_conv = nn.Conv2d(64, out_channels, kernel_size=1)
+        self.final_linear = nn.LazyLinear(out_channels*out_channels)
 
     def forward(self, x: torch.Tensor):
         """
@@ -159,5 +160,6 @@ class UNet(nn.Module):
         # Final $1 \times 1$ convolution layer
         x = self.final_conv(x)
 
-        #
+        # My addition of a linear layer to get the right output size
+        x = self.final_linear(x)
         return x
