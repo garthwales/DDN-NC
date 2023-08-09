@@ -7,7 +7,7 @@ import os
 import wandb # TODO: use this..
 
 from utils.generate_dataset import texture_colour
-from nets.nets import GenericNC, BasicMLP
+from nets.nets import GenericNC, BasicMLP, BasicCNN
 from nets.unet import UNet
 from nets.resnet import ResNetBase
 from utils.utils import load_images_from_directory, PlotResults, save_plot_imgs
@@ -45,11 +45,15 @@ def NCExperiments(args, output_folder):
     if args.net == 'UNet':
         pre_net = UNet(channels, args.size[0]*args.size[1])
     elif args.net == 'resnet':
-        # pre_net = ResNetBase()
+        pre_net = ResNetBase()
         assert 'not implement yet'
     elif args.net == 'MLP':
-        pre_net = BasicMLP(channels*args.size[0]*args.size[1], args.size[0])
         X_input = X_input.flatten(start_dim=1) # Flatten to match linear layers? IDK
+        pre_net = BasicMLP(channels*args.size[0]*args.size[1], args.size[0])
+    elif args.net == 'cnn':
+        pre_net = BasicCNN(args.size[0])
+    else:
+        assert 'provide a valid net (UNet, resnet, MLP, cnn)'
         
     model = GenericNC(pre_net, args.size[0], args.net, args.mat_type, args.method)
     
@@ -106,7 +110,7 @@ if __name__ == '__main__':
         method='exact',
         mat_type='psd',
         loss_on='second_smallest',
-        net='UNet',
+        net='cnn',
         
         size = (28,28),
         lr=1e-4,
