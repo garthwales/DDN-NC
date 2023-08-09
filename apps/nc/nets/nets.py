@@ -30,7 +30,7 @@ class GenericNC(nn.Module):
         # TODO: force a relu here? make it always positive inputs into next?
         
         # make square b,n,n
-        x = torch.reshape(x, (z.shape[0], self.n, self.n)) 
+        x = torch.reshape(x, (z.shape[0], self.n*self.n, self.n*self.n)) 
         
         # re-format square matrix into specified type
         if self.matrix_type == 'general':
