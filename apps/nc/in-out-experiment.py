@@ -25,7 +25,7 @@ def NCExperiments(args, output_folder):
     cosine_sim_curves = [[] for i in range(args.trials)]
 
     # TODO: timing and memory trials for these specific ones...
-    texture_colour('data/', args.batch) # generate the images if needed
+    # texture_colour('data/', args.batch) # generate the images if needed
     
     device = torch.device(f'cuda:{args.gpu}' if torch.cuda.is_available() else 'cpu') 
     print(device)
@@ -55,20 +55,21 @@ def NCExperiments(args, output_folder):
     else:
         assert 'provide a valid net (UNet, resnet, MLP, cnn)'
         
-    model = GenericNC(pre_net, args.size[0], args.net, args.mat_type, args.method)
     
     if torch.cuda.is_available():
         with torch.cuda.device(device):
             # torch.cuda.empty_cache()
             X_input = X_input.to(device)
             Q_true = Q_true.to(device)
-            model = model.to(device)
             
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
-    
     for trial in range(args.trials):
         # prepare data and model
         torch.manual_seed(22 + trial)
+
+        # reset model for each trial
+        model = GenericNC(pre_net, args.size[0], args.net, args.mat_type, args.method)
+        model = model.to(device)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
 
         # do optimisation
         for i in range(args.iters):
@@ -87,7 +88,7 @@ def NCExperiments(args, output_folder):
                 # NOTE: for the stuff from anu it would be Q_true[:,:,1] as it is assuming output is including everything
                 loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 1], Q_true))) # second smallest
                 if i % 100 == 0:
-                    name = f'trial-{trial}-iter-{i}.png'
+                    name = f'{args.out_type}-trial-{trial}-iter-{i}.png'
                     save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().cpu().numpy()[0:5], output_name=name, output_path=output_folder)
             else:
                 assert False, "loss_on must be one of ('all', 'max', 'min', 'second_smallest)" 
@@ -118,6 +119,7 @@ if __name__ == '__main__':
         
         dir_input = 'data/tc/img/',
         dir_output = 'data/tc/maskT',
+        out_type = 'texture',
         seed = 0
     )
     
@@ -153,6 +155,8 @@ if __name__ == '__main__':
     if enable_ed_random_exp:
         if exact_exp:
             option = 'exact/'
+            args.dir_output = 'data/tc/maskT'
+            args.out_type = 'texture'
             save_dir = os.path.join(base_dir, date_string, prefix, option)
             os.makedirs(save_dir, exist_ok=True)
             
@@ -164,12 +168,13 @@ if __name__ == '__main__':
         
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
-            plt.savefig(save_dir+f'{args.mat_type}_texture.pdf', dpi=300, bbox_inches='tight')
+            plt.savefig(save_dir+f'{args.mat_type}_{args.out_type}.pdf', dpi=300, bbox_inches='tight')
             
             # second smallest ev, psd matrix, color labels
-            args.dir_output = 'data/tc/maskT'
+            args.dir_output = 'data/tc/maskC'
+            args.out_type = 'colour'
             exact_curves, _ = NCExperiments(args, output_folder=save_dir)
         
             plt.figure()
             PlotResults(exact_curves, fcn=plt.plot)
-            plt.savefig(save_dir+f'{args.mat_type}_colour.pdf', dpi=300, bbox_inches='tight')
+            plt.savefig(save_dir+f'{args.mat_type}_{args.out_type}.pdf', dpi=300, bbox_inches='tight')
