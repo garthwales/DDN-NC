@@ -128,8 +128,8 @@ if __name__ == '__main__':
         seed = 0
     )
     
-    experiment = wandb.init(project='DDN-NC', config=args, mode='disabled')
-    # Config parameters are automatically set by W&B sweep agent
+    experiment = wandb.init(project='DDN-NC', config=args, mode='disabled', allow_val_changes=True)
+    # disabled and allow val changes... otherwise enable and use sweep to set different params
     args = wandb.config
     
     torch.backends.cudnn.benchmark = False
