@@ -27,7 +27,10 @@ def NCExperiments(args, output_folder):
     # TODO: timing and memory trials for these specific ones...
     # texture_colour('data/', args.batch) # generate the images if needed
     
-    device = torch.device(f'cuda:{args.gpu}' if torch.cuda.is_available() else 'cpu') 
+    if args.gpu is not None:
+        device = torch.device(f'cuda:{args.gpu}' if torch.cuda.is_available() else 'cpu') 
+    else:
+        device = torch.device('cpu')
     print(device)
     
     X_input = load_images_from_directory(args.dir_input, num=args.batch, size=args.size, gray=args.grayscale)
@@ -106,7 +109,7 @@ def NCExperiments(args, output_folder):
 
 if __name__ == '__main__':
     args = dict(
-        gpu=1,
+        gpu=None,
         batch=50, 
         iters=200, 
         trials=5, 
