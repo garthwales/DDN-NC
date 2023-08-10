@@ -61,7 +61,7 @@ def NCExperiments(args, output_folder):
         assert 'provide a valid net (UNet, resnet, MLP, cnn)'
         
     
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and args.gpu is not None:
         with torch.cuda.device(device):
             # torch.cuda.empty_cache()
             X_input = X_input.to(device)
