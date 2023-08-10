@@ -74,7 +74,7 @@ def NCExperiments(args, output_folder):
         optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
 
         # do optimisation
-        for i in range(args.iters):
+        for i in range(args.iters+1): # +1 so the plotting will happen for the end number as well
             optimizer.zero_grad(set_to_none=True)
             try:
                 Q_pred = model(X_input)
