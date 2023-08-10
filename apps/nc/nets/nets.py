@@ -3,6 +3,7 @@ import torch.nn as nn
 
 from datetime import datetime
 from nets.eigen import EigenDecompositionFcn
+from utils.utils import save_plot_imgs
 
 class GenericNC(nn.Module):
     def __init__(self, net, n, 
@@ -23,6 +24,7 @@ class GenericNC(nn.Module):
         self.matrix_type = matrix_type # general, psd
         self.method = method # exact, pytorch
         
+        self.forward_calls = 0
         
     def forward(self, z):
         # pre-nc network
@@ -31,6 +33,11 @@ class GenericNC(nn.Module):
         
         # make square b,n,n
         x = torch.reshape(x, (z.shape[0], self.n*self.n, self.n*self.n)) 
+        
+        
+        if self.forward_calls % 10 == 0:
+            save_plot_imgs(x.detach().cpu().numpy(), output_name=f'weights-{self.net_name}-{self.forward_calls}', output_path='figures/')
+        self.forward_calls += 1
         
         # re-format square matrix into specified type
         if self.matrix_type == 'general':

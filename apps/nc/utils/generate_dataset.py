@@ -128,7 +128,7 @@ def generate_texture_mask(imgs, w, h):
 
 def generate_split_texture(new_image, crop, value, img_size, w,h):
     """ step 3 tc dataset """
-    new_x, new_y = random.randint(0, img_size[0]-(w*1.5)), random.randint(0, img_size[1]-(h*1.5))
+    new_x, new_y = random.randint(0, img_size[0]-(w)), random.randint(0, img_size[1]-(h))
 
     base_textureA = np.zeros(img_size, np.uint8)
     paste(base_textureA, crop, (new_x, new_y))
@@ -202,7 +202,7 @@ def generate_combined_tc(b, new_imageA, new_imageB):
 # MAKES A SINGLE TC IMAGE
 def make_texture_colour_image(imgs, cmaps):
     """ createa a signle tc dataset image """
-    w,h = 40,40 
+    w,h = random.randint(40,100),random.randint(40,100)
     img_size = (100,100)
 
     colour_mask, value = generate_colour_mask(img_size)
@@ -220,7 +220,7 @@ def make_texture_colour_image(imgs, cmaps):
 
 def main():
     path = 'data/'
-    num_images = 5000
+    num_images = 500
 
     texture_colour(path, num_images)
 

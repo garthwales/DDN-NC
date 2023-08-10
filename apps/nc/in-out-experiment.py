@@ -87,9 +87,9 @@ def NCExperiments(args, output_folder):
             if args.loss_on == 'second_smallest':
                 # NOTE: for the stuff from anu it would be Q_true[:,:,1] as it is assuming output is including everything
                 loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 1], Q_true))) # second smallest
-                if i % 100 == 0:
+                if i % 10 == 0:
                     name = f'{args.out_type}-trial-{trial}-iter-{i}.png'
-                    save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().cpu().numpy()[0:5], output_name=name, output_path=output_folder)
+                    save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().cpu().numpy(), output_name=name, output_path=output_folder)
             else:
                 assert False, "loss_on must be one of ('all', 'max', 'min', 'second_smallest)" 
             learning_curves[trial].append(float(loss.item()))
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     args = dict(
         gpu=1,
         batch=50, 
-        iters=2000, 
+        iters=200, 
         trials=5, 
         method='exact',
         mat_type='psd',
