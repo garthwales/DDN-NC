@@ -219,7 +219,7 @@ def make_texture_colour_image(imgs, cmaps):
     return final_image, colour_mask, texture_mask
 
 def main():
-    path = '../data/'
+    path = 'data/'
     num_images = 30000
 
     texture_colour(path, num_images)
