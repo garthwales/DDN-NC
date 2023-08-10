@@ -36,7 +36,7 @@ def NCExperiments(args, output_folder):
     X_input = load_images_from_directory(args.dir_input, num=args.batch, size=args.size, gray=args.grayscale)
     Q_true = load_images_from_directory(args.dir_output, num=args.batch, size=args.size, gray=True)
     
-    save_plot_imgs(X_input.numpy(), output_name='X_true.png', output_path=output_folder)
+    save_plot_imgs(np.moveaxis(X_input.numpy(), 1, -1), output_name='X_true.png', output_path=output_folder)
     
     # TODO: change top_k if second smallest is selected..
     # TODO: change top_k if smallest is selected..?
