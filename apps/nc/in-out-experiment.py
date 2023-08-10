@@ -109,17 +109,17 @@ def NCExperiments(args, output_folder):
 
 if __name__ == '__main__':
     args = dict(
-        gpu=None,
+        gpu=1,
         batch=50, 
-        iters=200, 
-        trials=5, 
+        iters=1000, 
+        trials=3, 
         method='exact',
         mat_type='psd',
         loss_on='second_smallest',
         net='cnn',
         
         size = (28,28),
-        lr=1e-4,
+        lr=1e-3,
         grayscale=False,
         
         dir_input = 'data/tc/img/',
