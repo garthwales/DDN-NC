@@ -152,13 +152,14 @@ class BasicCNN(nn.Module):
         
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.5)
+        self.relu = nn.ReLU()
 
     def forward(self, x):
         x = self.conv1(x)
-        x = nn.ReLU(self.conv2(x))
-        x = nn.ReLU(self.conv3(x))
-        x = nn.ReLU(self.conv4(x))
-        x = nn.ReLU(self.conv5(x))
+        x = self.relu(self.conv2(x))
+        x = self.relu(self.conv3(x))
+        x = self.relu(self.conv4(x))
+        x = self.relu(self.conv5(x))
         x = torch.flatten(x, 1)  # Flatten the tensor
         x = self.fc1(x)
         x = self.fc2(x)
