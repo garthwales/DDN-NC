@@ -111,7 +111,7 @@ def NCExperiments(args, output_folder):
 
 if __name__ == '__main__':
     args = dict(
-        gpu=1,
+        gpu=0,
         batch=50, 
         iters=1000, 
         trials=3, 
