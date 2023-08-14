@@ -23,7 +23,7 @@ class GenericNC(nn.Module):
         self.net_name = net_name
         self.matrix_type = matrix_type # general, psd
         self.method = method # exact, pytorch
-        self.lapalce = laplace # None, basic, symm, symm2
+        self.laplace = laplace # None, basic, symm, symm2
         
         self.forward_calls = 0
         self.width = width
