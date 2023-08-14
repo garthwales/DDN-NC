@@ -8,7 +8,7 @@ from utils.utils import save_plot_imgs
 class GenericNC(nn.Module):
     def __init__(self, net, n, 
                  net_name = 'unspecified', matrix_type='psd',
-                 method='exact'):
+                 method='exact', width=-1):
         # TODO: could add more params like conditioning... vec flip options...
         super(GenericNC, self).__init__()
         
@@ -25,14 +25,34 @@ class GenericNC(nn.Module):
         self.method = method # exact, pytorch
         
         self.forward_calls = 0
+        self.width = width
+        self.w = width if width != -1 else n*n
         
     def forward(self, z):
         # pre-nc network
         x = self.net(z) # output b, n*n
         # TODO: force a relu here? make it always positive inputs into next?
         
-        # make square b,n,n
-        x = torch.reshape(x, (z.shape[0], self.n*self.n, self.n*self.n)) 
+        # make square b,m,m
+        x = torch.reshape(x, (z.shape[0], self.w, self.n*self.n)) 
+        
+        # if it is a smaller width (e.g. 100x1024 instead of 1024x1024, reshape into full matrix with 100 on diagonals)
+        if self.width != -1:
+            # move this square slice into diagonal
+            reconst = torch.zeros((z.shape[0],self.w,self.N), device=x.device)
+            # diags = r + 1 # include the main diagonal of ones
+            for b in range(z.shape[0]):
+                for i  in range(0, self.w):
+                    # if i == 0: # add the main diagonal (of all ones)
+                        # reconst[b] = torch.add(reconst[b], torch.eye(N, device=out.device))
+                    # else: # add the symmetric non-main diagonals
+                    diagonal = x[b][i-1]
+                    temp = torch.diag(diagonal[:self.n*self.n-i], i).to(x.device) # [:N-i] trims to fit the index'th diag size, places into index'th place
+                    reconst[b] = torch.add(reconst[b], temp) # add the upper diagonal (or middle if 0)
+                    if i != 0: # only need two when not the middle
+                        temp = torch.diag(diagonal[:self.n*self.n-i], -i).to(x.device)
+                        reconst[b] = torch.add(reconst[b], temp) # add the lower diagonal (symmetric)
+            x = reconst
         
         
         if self.forward_calls % 10 == 0:
@@ -40,12 +60,13 @@ class GenericNC(nn.Module):
         self.forward_calls += 1
         
         # re-format square matrix into specified type
-        if self.matrix_type == 'general':
-            pass
-        elif self.matrix_type == 'psd':
-            x = torch.matmul(x, x.transpose(1, 2)) # x = x @ x.T
-        else:
-            assert False, "unknown matrix_type"
+        if self.width == -1:
+            if self.matrix_type == 'general':
+                pass
+            elif self.matrix_type == 'psd':
+                x = torch.matmul(x, x.transpose(1, 2)) # x = x @ x.T
+            else:
+                assert False, "unknown matrix_type"
             
         # NOTE: 0.5 * (X + X.transpose(1, 2))
         #       is done before doing either of the eigensolvers no matter what
