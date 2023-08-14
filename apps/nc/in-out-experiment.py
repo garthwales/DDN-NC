@@ -57,6 +57,8 @@ def NCExperiments(args, output_folder):
         pre_net = BasicMLP(channels*args.size[0]*args.size[1], args.size[0])
     elif args.net == 'cnn':
         pre_net = BasicCNN(args.size[0])
+    elif args.net == 'vgg':
+        assert 'not implemented yet'
     else:
         assert 'provide a valid net (UNet, resnet, MLP, cnn)'
         
