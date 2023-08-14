@@ -94,12 +94,12 @@ def get_laplace(x, laplace):
     d = x.sum(1)
     D = torch.diag(d)
     L = D-x
-    if laplace is 'basic':
+    if laplace == 'basic':
         return L
-    if laplace is 'symm':
+    if laplace == 'symm':
         D_inv_sqrt = torch.diag_embed(torch.where(d>0, d.pow(-0.5), 0))
         return torch.einsum('...ij,...jk->...ik', torch.einsum('...ij,...jk->...ik', D_inv_sqrt , L) , D_inv_sqrt)
-    if laplace is 'symm2':
+    if laplace == 'symm2':
         D_inv_sqrt = torch.diag_embed(torch.where(d>0, d.pow(-0.5), 0))
         return 1 - torch.einsum('...ij,...jk->...ik', torch.einsum('...ij,...jk->...ik', D_inv_sqrt , x) , D_inv_sqrt) 
     assert 'incorrect laplace provided'
