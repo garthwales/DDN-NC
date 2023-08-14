@@ -8,7 +8,7 @@ from utils.utils import save_plot_imgs
 class GenericNC(nn.Module):
     def __init__(self, net, n, 
                  net_name = 'unspecified', matrix_type='psd',
-                 method='exact', width=-1):
+                 method='exact', width=-1, laplace=None):
         # TODO: could add more params like conditioning... vec flip options...
         super(GenericNC, self).__init__()
         
@@ -23,6 +23,7 @@ class GenericNC(nn.Module):
         self.net_name = net_name
         self.matrix_type = matrix_type # general, psd
         self.method = method # exact, pytorch
+        self.lapalce = laplace # None, basic, symm, symm2
         
         self.forward_calls = 0
         self.width = width
@@ -54,7 +55,6 @@ class GenericNC(nn.Module):
                         reconst[b] = torch.add(reconst[b], temp) # add the lower diagonal (symmetric)
             x = reconst
         
-        
         if self.forward_calls % 10 == 0:
             save_plot_imgs(x.detach().cpu().numpy(), output_name=f'weights-{self.net_name}-{self.forward_calls}', output_path='figures/')
         self.forward_calls += 1
@@ -67,7 +67,10 @@ class GenericNC(nn.Module):
                 x = torch.matmul(x, x.transpose(1, 2)) # x = x @ x.T
             else:
                 assert False, "unknown matrix_type"
-            
+
+        if self.laplace is not None:
+            x = get_laplace(x, self.laplace)
+        
         # NOTE: 0.5 * (X + X.transpose(1, 2))
         #       is done before doing either of the eigensolvers no matter what
         #       maybe that should be done with matrix_type?
@@ -86,6 +89,20 @@ class GenericNC(nn.Module):
             raise
         
         return y
+
+def get_laplace(x, laplace):
+    d = x.sum(1)
+    D = torch.diag(d)
+    L = D-x
+    if laplace is 'basic':
+        return L
+    if laplace is 'symm':
+        D_inv_sqrt = torch.diag_embed(torch.where(d>0, d.pow(-0.5), 0))
+        return torch.einsum('...ij,...jk->...ik', torch.einsum('...ij,...jk->...ik', D_inv_sqrt , L) , D_inv_sqrt)
+    if laplace is 'symm2':
+        D_inv_sqrt = torch.diag_embed(torch.where(d>0, d.pow(-0.5), 0))
+        return 1 - torch.einsum('...ij,...jk->...ik', torch.einsum('...ij,...jk->...ik', D_inv_sqrt , x) , D_inv_sqrt) 
+    assert 'incorrect laplace provided'
 
 class BasicMLP(nn.Module):
     """ Multi-layer perceptron to pass before NC. """
@@ -126,13 +143,23 @@ class BasicCNN(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(in_channels=128, out_channels=1, kernel_size=3, stride=1, padding=1)
-        self.fc1 = nn.Linear(1 * n * n, n*n * n*n)
+        self.conv3 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=128, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv5 = nn.Conv2d(in_channels=64, out_channels=3, kernel_size=3, stride=1, padding=1)
+        
+        self.fc1 = nn.Linear(3 * n * n, 1 * n * n)
+        self.fc2 = nn.Linear(1 * n * n, n*n * n*n)
+        
+        self.dropout1 = nn.Dropout(0.25)
+        self.dropout2 = nn.Dropout(0.5)
 
     def forward(self, x):
-        x = torch.relu(self.conv1(x))
-        x = torch.relu(self.conv2(x))
-        x = torch.relu(self.conv3(x))
-        x = x.view(x.size(0), -1)  # Flatten the tensor
+        x = self.conv1(x)
+        x = nn.ReLU(self.conv2(x))
+        x = nn.ReLU(self.conv3(x))
+        x = nn.ReLU(self.conv4(x))
+        x = nn.ReLU(self.conv5(x))
+        x = torch.flatten(x, 1)  # Flatten the tensor
         x = self.fc1(x)
+        x = self.fc2(x)
         return x
