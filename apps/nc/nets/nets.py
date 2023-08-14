@@ -139,7 +139,7 @@ class BasicMLP(nn.Module):
         return self.mlp(z)
     
 class BasicCNN(nn.Module):
-    def __init__(self, n):
+    def __init__(self, n, out_size):
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
@@ -148,7 +148,7 @@ class BasicCNN(nn.Module):
         self.conv5 = nn.Conv2d(in_channels=64, out_channels=3, kernel_size=3, stride=1, padding=1)
         
         self.fc1 = nn.Linear(3 * n * n, 1 * n * n)
-        self.fc2 = nn.Linear(1 * n * n, n*n * n*n)
+        self.fc2 = nn.Linear(1 * n * n, out_size)
         
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.5)
