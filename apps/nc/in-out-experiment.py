@@ -112,7 +112,7 @@ def NCExperiments(args, output_folder):
 if __name__ == '__main__':
     args = dict(
         gpu=0,
-        batch=50, 
+        batch=30, 
         iters=1000, 
         trials=3, 
         method='exact',
