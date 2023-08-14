@@ -35,9 +35,7 @@ class GenericNC(nn.Module):
         # TODO: force a relu here? make it always positive inputs into next?
         
         # make square b,m,m
-        print(x.shape)
-        print(f'{z.shape[0]} {self.w} {self.n}*{self.n}')
-        x = torch.reshape(x, (z.shape[0], self.w, self.n*self.n)) 
+        x = torch.reshape(x, (z.shape[0], self.w, -1)) 
         
         # if it is a smaller width (e.g. 100x1024 instead of 1024x1024, reshape into full matrix with 100 on diagonals)
         if self.width != -1:
