@@ -79,6 +79,7 @@ class GenericNC(nn.Module):
                 x = 0.5 * (x + x.transpose(1, 2))
                 v, y = torch.linalg.eigh(x)
             elif self.method == 'exact':
+                print(x.shape)
                 y = EigenDecompositionFcn().apply(x)
             else:
                 assert False
