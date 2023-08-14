@@ -147,7 +147,7 @@ class BasicCNN(nn.Module):
         self.conv4 = nn.Conv2d(in_channels=128, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.conv5 = nn.Conv2d(in_channels=64, out_channels=3, kernel_size=3, stride=1, padding=1)
         
-        self.fc1 = nn.Linear(3 * n * n, 1 * n * n)
+        self.fc1 = nn.Linear(1 * n * n, 1 * n * n)
         self.fc2 = nn.Linear(1 * n * n, out_size)
         
         self.dropout1 = nn.Dropout(0.25)

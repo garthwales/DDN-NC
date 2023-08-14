@@ -121,7 +121,7 @@ if __name__ == '__main__':
         net='cnn',
         
         size = (96,96),
-        width = 100,
+        width = 50,
         laplace = 'symm',
         
         lr=1e-3,
