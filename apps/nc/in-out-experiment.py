@@ -56,7 +56,7 @@ def NCExperiments(args, output_folder):
         X_input = X_input.flatten(start_dim=1) # Flatten to match linear layers? IDK
         pre_net = BasicMLP(channels*args.size[0]*args.size[1], args.size[0])
     elif args.net == 'cnn':
-        pre_net = BasicCNN(args.size[0], args.width*args.size[0]*args.size[1])
+        pre_net = BasicCNN(args.size[1], args.width*args.size[0]*args.size[1])
     elif args.net == 'vgg':
         assert 'not implemented yet'
     else:
