@@ -120,13 +120,16 @@ if __name__ == '__main__':
         loss_on='second_smallest',
         net='cnn',
         
-        size = (28,28),
+        size = (96,96),
+        width = 100,
+        laplace = 'symm',
+        
         lr=1e-3,
         grayscale=False,
         
-        dir_input = 'data/tc/img/',
-        dir_output = 'data/tc/maskT',
-        out_type = 'texture',
+        dir_input = 'data/samples/img/',
+        dir_output = 'data/samples/col/',
+        out_type = 'colour',
         seed = 0
     )
     
@@ -161,10 +164,9 @@ if __name__ == '__main__':
     
     if enable_ed_random_exp:
         if exact_exp:
-            option = 'exact/'
-            args.dir_output = 'data/tc/maskT'
-            args.out_type = 'texture'
-            save_dir = os.path.join(base_dir, date_string, prefix, option)
+            args.dir_output = 'data/samples/col/'
+            args.out_type = 'colour'
+            save_dir = os.path.join(base_dir, date_string, prefix)
             os.makedirs(save_dir, exist_ok=True)
             
             # TODO: here or in experiements.. but write a txt args saved
@@ -178,8 +180,8 @@ if __name__ == '__main__':
             plt.savefig(save_dir+f'{args.mat_type}_{args.out_type}.pdf', dpi=300, bbox_inches='tight')
             
             # second smallest ev, psd matrix, color labels
-            args.dir_output = 'data/tc/maskC'
-            args.out_type = 'colour'
+            args.dir_output = 'data/samples/tex/'
+            args.out_type = 'texture'
             exact_curves, _ = NCExperiments(args, output_folder=save_dir)
         
             plt.figure()
