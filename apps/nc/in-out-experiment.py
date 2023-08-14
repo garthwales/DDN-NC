@@ -116,7 +116,7 @@ if __name__ == '__main__':
         iters=1000, 
         trials=3, 
         method='exact',
-        mat_type='psd',
+        mat_type='general',
         loss_on='second_smallest',
         net='cnn',
         
