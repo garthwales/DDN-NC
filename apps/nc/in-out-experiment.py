@@ -6,7 +6,6 @@ import os
 
 import wandb # TODO: use this..
 
-from utils.generate_dataset import texture_colour
 from nets.nets import GenericNC, BasicMLP, BasicCNN
 from nets.unet import UNet
 from nets.resnet import ResNetBase
@@ -96,7 +95,7 @@ def NCExperiments(args, output_folder):
                 loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(Q_pred[:, :, 1], Q_true))) # second smallest
                 if i % 10 == 0:
                     name = f'{args.out_type}-trial-{trial}-iter-{i}.png'
-                    save_plot_imgs(Q_pred[:,:,1].reshape((-1,28,28)).detach().cpu().numpy(), output_name=name, output_path=output_folder)
+                    save_plot_imgs(Q_pred[:,:,1].reshape((-1,args.size[0],args.size[1])).detach().cpu().numpy(), output_name=name, output_path=output_folder)
             else:
                 assert False, "loss_on must be one of ('all', 'max', 'min', 'second_smallest)" 
             learning_curves[trial].append(float(loss.item()))
@@ -112,7 +111,7 @@ def NCExperiments(args, output_folder):
 if __name__ == '__main__':
     args = dict(
         gpu=0,
-        batch=1, 
+        batch=2, 
         iters=1000, 
         trials=3, 
         method='exact',

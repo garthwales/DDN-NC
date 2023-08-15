@@ -40,7 +40,7 @@ class GenericNC(nn.Module):
         # if it is a smaller width (e.g. 100x1024 instead of 1024x1024, reshape into full matrix with 100 on diagonals)
         if self.width != -1:
             # move this square slice into diagonal
-            reconst = torch.zeros((z.shape[0],self.w,self.n*self.n), device=x.device)
+            reconst = torch.zeros((z.shape[0],self.n*self.n,self.n*self.n), device=x.device)
             # diags = r + 1 # include the main diagonal of ones
             for b in range(z.shape[0]):
                 for i  in range(0, self.w):
