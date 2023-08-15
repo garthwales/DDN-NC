@@ -36,7 +36,7 @@ def NCExperiments(args, output_folder):
     X_input = load_images_from_directory(args.dir_input, num=args.batch, size=args.size, gray=args.grayscale)
     Q_true = load_images_from_directory(args.dir_output, num=args.batch, size=args.size, gray=True)
     
-    save_plot_imgs(np.moveaxis(X_input.numpy(), 1, -1), output_name='X_true.png', output_path=output_folder)
+    # save_plot_imgs(np.moveaxis(X_input.numpy(), 1, -1), output_name='X_true.png', output_path=output_folder)
     
     # TODO: change top_k if second smallest is selected..
     # TODO: change top_k if smallest is selected..?
@@ -74,7 +74,7 @@ def NCExperiments(args, output_folder):
         torch.manual_seed(22 + trial)
 
         # reset model for each trial
-        model = GenericNC(pre_net, args.size[0], args.net, args.mat_type, args.method)
+        model = GenericNC(pre_net, args.size[0], args.net, args.mat_type, args.method, args.width, args.laplace)
         model = model.to(device)
         optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
 
@@ -112,7 +112,7 @@ def NCExperiments(args, output_folder):
 if __name__ == '__main__':
     args = dict(
         gpu=0,
-        batch=30, 
+        batch=1, 
         iters=1000, 
         trials=3, 
         method='exact',
@@ -122,7 +122,7 @@ if __name__ == '__main__':
         
         size = (96,96),
         width = 50,
-        laplace = 'symm',
+        laplace = None,
         
         lr=1e-3,
         grayscale=False,
