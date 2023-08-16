@@ -50,8 +50,8 @@ def test(model, device, test_loader):
 
 def get_dataloader(args):
     # TODO implement
-    X_input = load_images_from_directory(args.dir_input, num=args.batch, size=args.size, gray=args.grayscale)
-    Q_true = load_images_from_directory(args.dir_output, num=args.batch, size=args.size, gray=True)
+    X_input = load_images_from_directory(args.dir_input, num=1000, size=args.size, gray=args.grayscale)
+    Q_true = load_images_from_directory(args.dir_output, num=1000, size=args.size, gray=True)
     
     validation_split = 0.2
     dataset_size = len(dataset)
@@ -63,8 +63,8 @@ def get_dataloader(args):
 
     # Create data loaders for train and validation sets
     batch_size = 16
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    validation_dataloader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch, shuffle=True)
+    validation_dataloader = DataLoader(validation_dataset, batch_size=args.batch, shuffle=False)
     
 def main():
     # TODO add more args to match in-out-experiment
