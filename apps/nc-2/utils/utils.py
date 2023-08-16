@@ -19,7 +19,7 @@ def PlotResults(exact_curves, fcn=plt.semilogy):
     plt.ylabel('loss')
 
 # Function to load all images from a directory and convert to PyTorch tensors
-def load_images_from_directory(directory, num=10, size=(28,28)):
+def load_images_from_directory(directory, num=10, size=(28,28), gray=False):
     
     
     transform = transforms.Compose([
@@ -31,7 +31,10 @@ def load_images_from_directory(directory, num=10, size=(28,28)):
         if i >= num:
             return torch.stack(images)
         img_path = os.path.join(directory, filename)
-        image = cv2.resize(cv2.imread(img_path,0), size)
+        if gray:
+            image = cv2.resize(cv2.imread(img_path, 0), size)
+        else:
+            image = cv2.resize(cv2.imread(img_path), size)
         image = transform(image).squeeze() # ToTensor() adds too much
         images.append(image)
     return torch.stack(images)
