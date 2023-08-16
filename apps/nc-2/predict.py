@@ -22,12 +22,8 @@ def predict_img(net,
     img = img.to(device=device, dtype=torch.float32)
 
     with torch.no_grad():
-        output = net(img).cpu()
-        output = F.interpolate(output, (full_img.size[1], full_img.size[0]), mode='bilinear')
-        if net.n_classes > 1:
-            mask = output.argmax(dim=1)
-        else:
-            mask = torch.sigmoid(output) > out_threshold
+        mask = net(img).cpu()
+        # mask = F.interpolate(mask, (full_img.size[1], full_img.size[0]), mode='bilinear')
 
     return mask[0].long().squeeze().numpy()
 

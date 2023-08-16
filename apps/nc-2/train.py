@@ -14,10 +14,10 @@ import wandb
 from evaluate import evaluate
 
 # import each different model
-from nets.unet import UNet as UNet
+from nets.unet import UNet
 from nets.resnet import ResNetBase
 
-from nets.nets import GenericNC, BasicMLP
+from nets.nets import GenericNC, BasicMLP, BasicCNN
 
 from utils.data_loading import BasicDataset
 
@@ -28,22 +28,18 @@ def train_model(model, device, args):
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * args.val_percent)
     n_train = len(dataset) - n_val
-    train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
+    train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(args.seed))
 
     # 3. Create data loaders
-    loader_args = dict(batch_size=args.batch_size, num_workers=os.cpu_count(), pin_memory=True)
+    loader_args = dict(batch_size=args.batch_size, num_workers=os.cpu_count()-2, pin_memory=True)
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
 
     pprint(args)
 
-    # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
-    # optimizer = optim.RMSprop(model.parameters(),
-    #                           lr=args.lr, weight_decay=weight_decay, momentum=momentum, foreach=True)
-    
     optimizer = torch.optim.AdamW(model.parameters(), lr=1.0e-3)
     
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5)  # goal: minimize loss
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=args.patience)  # goal: minimize loss
     grad_scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
     
     global_step = 0
@@ -126,64 +122,77 @@ def train_model(model, device, args):
 if __name__ == '__main__':
     
     defaults_dict = dict(
-        net_name = 'unet',
-        epochs=100, 
-        batch_size = 100,
+        epochs=10, 
+        batch_size = 10,
 
         lr = 1e-3, # will lower during training with patience
-        patience=10,
+        patience=5,
 
         dir_img = 'data/tc/img/',
         dir_mask = 'data/tc/maskC',
 
-        val=10, # Percent of the data that is used as validation (0-100)
+        val_percent=0.1,
 
-        n_classes=784, # Number of classes
-        n_channels=3, # 3 for RGB inputs
+        grayscale=False,
+        method='exact',
+        mat_type='general',
+        loss_on='second_smallest',
+        net='cnn',
+        
+        size = (96,96),
+        width = 50,
+        laplace = None,
 
         seed=22, # TODO: loop through different seeds to produce different trial runs
         gpu=1,
         img_scale=1, # Downscaling factor of the images
 
-        mat_type='psd',
-        method='exact',
-
         gradient_clipping = 1.0,
+        save_checkpoint= True,
         
         load=False, # Load model from a .pth file
         # Not likely to use for IVCNZ at least
         amp=False, # Use mixed precision
         # Configuration does nothing, but important to note
         optim='adam',
-        shuffle=True)
+        shuffle=True,
+        )
 
-    experiment = wandb.init(project='DDN-NC', config=defaults_dict)
+    experiment = wandb.init(project='IVCNZ', config=defaults_dict)
     # Config parameters are automatically set by W&B sweep agent
     args = wandb.config
      
     # logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device {device}')
+    
+    channels = 1 if args.grayscale else 3
 
-    # Change here to adapt to your data
-    # n_channels=3 for RGB images
-    # n_classes is the number of probabilities you want to get per pixel
-    if args.net_name == 'unet':
-        pre_net = UNet(args.n_channels,args.n_classes) 
-    elif args.net_name == 'mlp':
-        pre_net = BasicMLP(3*28*28, 28*28)
+    if args.net == 'UNet':
+        pre_net = UNet(channels, args.size[0]*args.size[1])
+    elif args.net == 'resnet':
+        pre_net = ResNetBase()
+        assert 'not implement yet'
+    elif args.net == 'MLP':
+        # X_input = X_input.flatten(start_dim=1) # Flatten to match linear layers? IDK
+        pre_net = BasicMLP(channels*args.size[0]*args.size[1], args.size[0])
+    elif args.net == 'cnn':
+        pre_net = BasicCNN(args.size[1], args.width*args.size[0]*args.size[0])
+    elif args.net == 'vgg':
+        assert 'not implemented yet'
     else:
-        assert 'provide a valid net_name (unet, mlp)'
+        assert 'provide a valid net (UNet, resnet, MLP, cnn)'
+   
         
     model = GenericNC(pre_net, 28, args.net_name, args.mat_type, args.method)
     
     # NOTE: Not sure if this memory format does anything useful?
     model = model.to(memory_format=torch.channels_last) 
 
-    print(f'Network:\n'
-                 f'\t{model.n_channels} input channels\n'
-                 f'\t{model.n_classes} output channels (classes)\n'
-                 f'\t{"Bilinear" if model.bilinear else "Transposed conv"} upscaling')
+    # print(f'Network:\n'
+    #              f'\t{model.n_channels} input channels\n'
+    #              f'\t{model.n_classes} output channels (classes)\n'
+    #              f'\t{"Bilinear" if model.bilinear else "Transposed conv"} upscaling')
 
     if args.load:
         state_dict = torch.load(args.load, map_location=device)
@@ -200,7 +209,7 @@ if __name__ == '__main__':
             learning_rate=args.lr,
             device=device,
             img_scale=args.scale,
-            val_percent=args.val / 100,
+            val_percent=args.val_percent,
             amp=args.amp
         )
     except torch.cuda.OutOfMemoryError:
@@ -216,7 +225,7 @@ if __name__ == '__main__':
             learning_rate=args.lr,
             device=device,
             img_scale=args.scale,
-            val_percent=args.val / 100,
+            val_percent=args.val_percent,
             amp=args.amp
         )
     except KeyboardInterrupt:
