@@ -15,13 +15,11 @@ from evaluate import evaluate
 
 # import each different model
 from nets.unet import UNet as UNet
-from nets.unet_model import UNet2
 from nets.resnet import ResNetBase
 
 from nets.nets import GenericNC, BasicMLP
 
 from utils.data_loading import BasicDataset
-from utils.dice_score import dice_loss
 
 def train_model(model, device, args):
     # 1. Create dataset
@@ -45,9 +43,9 @@ def train_model(model, device, args):
     
     optimizer = torch.optim.AdamW(model.parameters(), lr=1.0e-3)
     
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5)  # goal: maximize Dice score
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5)  # goal: minimize loss
     grad_scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
-    criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
+    
     global_step = 0
 
     # 5. Begin training
@@ -63,21 +61,12 @@ def train_model(model, device, args):
                     f'but loaded images have {images.shape[1]} channels. Please check that ' \
                     'the images are loaded correctly.'
 
-                images = images.to(device=device, dtype=torch.float32, memory_format=torch.channels_last)
-                true_masks = true_masks.to(device=device, dtype=torch.long)
+                images = images.to(device=device, memory_format=torch.channels_last)
+                true_masks = true_masks.to(device=device)
 
                 with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=args.amp):
                     masks_pred = model(images)
-                    if model.n_classes == 1:
-                        loss = criterion(masks_pred.squeeze(1), true_masks.float())
-                        loss += dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
-                    else:
-                        loss = criterion(masks_pred, true_masks)
-                        loss += dice_loss(
-                            F.softmax(masks_pred, dim=1).float(),
-                            F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
-                            multiclass=True
-                        )
+                    loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(masks_pred[:, :, 1], true_masks)))
 
                 optimizer.zero_grad(set_to_none=True)
                 grad_scaler.scale(loss).backward()
