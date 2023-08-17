@@ -99,11 +99,11 @@ def train_model(model, device, args):
                         try:
                             experiment.log({
                                 'learning rate': optimizer.param_groups[0]['lr'],
-                                'validation Dice': val_score,
+                                'val': val_score,
                                 'images': wandb.Image(images[0].cpu()),
                                 'masks': {
-                                    'true': wandb.Image(true_masks[0].float().cpu()),
-                                    'pred': wandb.Image(masks_pred.argmax(dim=1)[0].float().cpu()),
+                                    'true': wandb.Image(true_masks[0].cpu()),
+                                    'pred': wandb.Image(masks_pred[0].cpu()),
                                 },
                                 'step': global_step,
                                 'epoch': epoch,

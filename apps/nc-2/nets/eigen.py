@@ -29,7 +29,7 @@ class EigenDecompositionFcn(torch.autograd.Function):
         L = torch.where(torch.abs(L) < EigenDecompositionFcn.eps, zero, 1.0 / L)
         dJdX = torch.bmm(torch.bmm(Y, L * torch.bmm(Y.transpose(1, 2), dJdY)), Y[:, :, -K:].transpose(1, 2))
 
-        dJdX = 0.5 * (dJdX + dJdX.transpose(1, 2))
+        dJdX = 0.5 * (dJdX + dJdX.transpose(1, 2)) # undo the symmetricies operation
 
         return dJdX, None
 
