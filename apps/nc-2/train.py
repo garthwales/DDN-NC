@@ -19,11 +19,11 @@ from nets.resnet import ResNetBase
 
 from nets.nets import GenericNC, BasicMLP, BasicCNN
 
-from utils.data_loading import BasicDataset
+from utils.data_loading import TwoFolders
 
 def train_model(model, device, args):
     # 1. Create dataset
-    dataset = BasicDataset(args.dir_img, args.dir_mask, args.img_scale)
+    dataset = TwoFolders(args.dir_img, args.dir_mask)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * args.val_percent)
@@ -49,9 +49,8 @@ def train_model(model, device, args):
         model.train()
         epoch_loss = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch}/{args.epochs}', unit='img') as pbar:
-            for batch in train_loader:
-                images, true_masks = batch['image'], batch['mask']
-
+            for images, true_masks in train_loader:
+                
                 assert images.shape[1] == model.n_channels, \
                     f'Network has been defined with {model.n_channels} input channels, ' \
                     f'but loaded images have {images.shape[1]} channels. Please check that ' \
@@ -124,20 +123,20 @@ if __name__ == '__main__':
     defaults_dict = dict(
         epochs=10, 
         batch_size = 10,
+        val_percent=0.1,
 
         lr = 1e-3, # will lower during training with patience
         patience=5,
 
-        dir_img = 'data/tc/img/',
-        dir_mask = 'data/tc/maskC',
+        dir_img = 'data/samples/img',
+        dir_mask = 'data/samples/col',
 
-        val_percent=0.1,
 
         grayscale=False,
         method='exact',
         mat_type='general',
         loss_on='second_smallest',
-        net='cnn',
+        net='UNet-only',
         
         size = (96,96),
         width = 50,
@@ -158,7 +157,7 @@ if __name__ == '__main__':
         shuffle=True,
         )
 
-    experiment = wandb.init(project='IVCNZ', config=defaults_dict)
+    experiment = wandb.init(project='IVCNZ', config=defaults_dict, mode='disabled')
     # Config parameters are automatically set by W&B sweep agent
     args = wandb.config
      
@@ -168,31 +167,30 @@ if __name__ == '__main__':
     
     channels = 1 if args.grayscale else 3
 
-    if args.net == 'UNet':
-        pre_net = UNet(channels, args.size[0]*args.size[1])
-    elif args.net == 'resnet':
-        pre_net = ResNetBase()
-        assert 'not implement yet'
-    elif args.net == 'MLP':
-        # X_input = X_input.flatten(start_dim=1) # Flatten to match linear layers? IDK
-        pre_net = BasicMLP(channels*args.size[0]*args.size[1], args.size[0])
-    elif args.net == 'cnn':
-        pre_net = BasicCNN(args.size[1], args.width*args.size[0]*args.size[0])
-    elif args.net == 'vgg':
-        assert 'not implemented yet'
+    if 'only' in args.net:
+        if args.net == 'UNet-only':
+            model = UNet(channels, args.size[0]*args.size[1])
     else:
-        assert 'provide a valid net (UNet, resnet, MLP, cnn)'
-   
-        
-    model = GenericNC(pre_net, 28, args.net_name, args.mat_type, args.method)
+        if args.net == 'UNet':
+            pre_net = UNet(channels, args.size[0]*args.size[1])
+        elif args.net == 'resnet':
+            pre_net = ResNetBase()
+            assert 'not implement yet'
+        elif args.net == 'MLP':
+            # X_input = X_input.flatten(start_dim=1) # Flatten to match linear layers? IDK
+            pre_net = BasicMLP(channels*args.size[0]*args.size[1], args.size[0])
+        elif args.net == 'cnn':
+            pre_net = BasicCNN(args.size[1], args.width*args.size[0]*args.size[0])
+        elif args.net == 'vgg':
+            assert 'not implemented yet'
+        else:
+            assert 'provide a valid net (UNet, resnet, MLP, cnn)'
+    
+            
+        model = GenericNC(pre_net, 28, args.net_name, args.mat_type, args.method)
     
     # NOTE: Not sure if this memory format does anything useful?
     model = model.to(memory_format=torch.channels_last) 
-
-    # print(f'Network:\n'
-    #              f'\t{model.n_channels} input channels\n'
-    #              f'\t{model.n_classes} output channels (classes)\n'
-    #              f'\t{"Bilinear" if model.bilinear else "Transposed conv"} upscaling')
 
     if args.load:
         state_dict = torch.load(args.load, map_location=device)
@@ -202,32 +200,14 @@ if __name__ == '__main__':
 
     model.to(device=device)
     try:
-        train_model(
-            model=model,
-            epochs=args.epochs,
-            batch_size=args.batch_size,
-            learning_rate=args.lr,
-            device=device,
-            img_scale=args.scale,
-            val_percent=args.val_percent,
-            amp=args.amp
-        )
+        train_model(model, device, args)
     except torch.cuda.OutOfMemoryError:
         print('Detected OutOfMemoryError! '
                       'Enabling checkpointing to reduce memory usage, but this slows down training. '
                       'Consider enabling AMP (--amp) for fast and memory efficient training')
         torch.cuda.empty_cache()
         model.use_checkpointing()
-        train_model(
-            model=model,
-            epochs=args.epochs,
-            batch_size=args.batch_size,
-            learning_rate=args.lr,
-            device=device,
-            img_scale=args.scale,
-            val_percent=args.val_percent,
-            amp=args.amp
-        )
+        train_model(model, device, args)
     except KeyboardInterrupt:
         torch.save(model.state_dict(), 'INTERRUPTED.pth')
         print('Saved interrupt')
