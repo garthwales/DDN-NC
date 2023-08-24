@@ -5,6 +5,8 @@ from datetime import datetime
 from nets.eigen import EigenDecompositionFcn
 from utils.utils import save_plot_imgs
 
+from torch.utils.checkpoint import checkpoint
+
 class GenericNC(nn.Module):
     def __init__(self, net, n, 
                  net_name = 'unspecified', matrix_type='psd',
@@ -28,6 +30,14 @@ class GenericNC(nn.Module):
         self.forward_calls = 0
         self.width = width
         self.w = width if width != -1 else n*n
+        
+    def custom(self, module):
+        def custom_forward(*inputs):
+            inputs = module(inputs[0])
+            return inputs
+        return custom_forward
+    
+    # out = checkpoint(self.custom(self.module), out)
         
     def forward(self, z):
         # pre-nc network
@@ -55,9 +65,10 @@ class GenericNC(nn.Module):
                         reconst[b] = torch.add(reconst[b], temp) # add the lower diagonal (symmetric)
             x = reconst
         
-        if self.forward_calls % 10 == 0:
-            save_plot_imgs(x.detach().cpu().numpy(), output_name=f'weights-{self.net_name}-{self.forward_calls}', output_path='figures/')
-        self.forward_calls += 1
+        # TODO: replace with wandb outputs instead
+        # if self.forward_calls % 10 == 0:
+        #     save_plot_imgs(x.detach().cpu().numpy(), output_name=f'weights-{self.net_name}-{self.forward_calls}', output_path='figures/')
+        # self.forward_calls += 1
         
         # re-format square matrix into specified type
         if self.width == -1:

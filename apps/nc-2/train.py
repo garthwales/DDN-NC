@@ -169,7 +169,7 @@ if __name__ == '__main__':
 
     if 'only' in args.net:
         if args.net == 'UNet-only':
-            model = UNet(channels, args.size[0]*args.size[1])
+            model = UNet(channels, 1)
     else:
         if args.net == 'UNet':
             pre_net = UNet(channels, args.size[0]*args.size[1])
