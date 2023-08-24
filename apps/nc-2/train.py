@@ -50,12 +50,6 @@ def train_model(model, device, args):
         epoch_loss = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch}/{args.epochs}', unit='img') as pbar:
             for images, true_masks in train_loader:
-                
-                assert images.shape[1] == model.n_channels, \
-                    f'Network has been defined with {model.n_channels} input channels, ' \
-                    f'but loaded images have {images.shape[1]} channels. Please check that ' \
-                    'the images are loaded correctly.'
-
                 images = images.to(device=device, memory_format=torch.channels_last)
                 true_masks = true_masks.to(device=device)
 
