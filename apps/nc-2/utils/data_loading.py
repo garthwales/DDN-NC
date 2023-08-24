@@ -4,11 +4,39 @@ import torch
 from PIL import Image
 from functools import partial
 from multiprocessing import Pool
-from os import listdir
+import os
 from os.path import splitext, isfile, join
 from pathlib import Path
 from torch.utils.data import Dataset
 from tqdm import tqdm
+import cv2
+
+class TwoFolders(Dataset):
+    def __init__(self, images_dir, masks_dir, transform=None):
+        self.images_dir = images_dir
+        self.masks_dir = masks_dir
+        self.img_files = sorted(os.listdir(images_dir))
+        self.col_files = sorted(os.listdir(masks_dir))
+        self.transform = transform
+    
+    def __len__(self):
+        return len(self.img_files)
+    
+    def __getitem__(self, index):
+        img_filename = self.img_files[index]
+        mask_filename = self.col_files[index]
+        
+        img_path = os.path.join(self.images_dir, img_filename)
+        mask_path = os.path.join(self.masks_dir, mask_filename)
+        
+        
+        image = cv2.imread(img_path)
+        mask = cv2.imread(mask_path, 0)
+        
+        if self.transform:
+            image = self.transform(image)
+        
+        return image, mask
 
 
 def load_image(filename):
@@ -45,16 +73,20 @@ class BasicDataset(Dataset):
         if not self.ids:
             raise RuntimeError(f'No input file found in {images_dir}, make sure you put your images there')
 
-        logging.info(f'Creating dataset with {len(self.ids)} examples')
-        logging.info('Scanning mask files to determine unique values')
-        with Pool() as p:
-            unique = list(tqdm(
-                p.imap(partial(unique_mask_values, mask_dir=self.mask_dir, mask_suffix=self.mask_suffix), self.ids),
-                total=len(self.ids)
-            ))
-
+        
+        self.mask_values = [np.unique(np.asarray(load_image(mask_dir+mask))) for mask in listdir(mask_dir)]
         self.mask_values = list(sorted(np.unique(np.concatenate(unique), axis=0).tolist()))
-        logging.info(f'Unique mask values: {self.mask_values}')
+        print(f'Creating dataset with {len(self.ids)} examples')
+        print(f'Unique mask values: {self.mask_values}')
+        # logging.info('Scanning mask files to determine unique values')
+        
+        # # from original PytorchUNet code, but removed from here
+        # with Pool() as p:
+        #     unique = list(tqdm(
+        #         p.imap(partial(unique_mask_values, mask_dir=self.mask_dir, mask_suffix=self.mask_suffix), self.ids),
+        #         total=len(self.ids)
+        #     ))
+        # self.mask_values = list(sorted(np.unique(np.concatenate(unique), axis=0).tolist()))
 
     def __len__(self):
         return len(self.ids)
