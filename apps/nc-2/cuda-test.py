@@ -6,22 +6,16 @@ print(torch.cuda.device_count())
 
 device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 print('Using device:', device)
-print()
 
 #Additional Info when using cuda
 if device.type == 'cuda':
     print(torch.cuda.get_device_name(1))
     print('Memory Usage:')
-    print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
-    print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
-    print('Allocated:', round(torch.cuda.memory_allocated(1)/1024**3,1), 'GB')
-    print('Cached:   ', round(torch.cuda.memory_reserved(1)/1024**3,1), 'GB')
+    print(torch.cuda.memory_summary(0))
     
     A = torch.randn((96*96, 96*96), device=device)
     
     print(torch.cuda.get_device_name(1))
     print('Memory Usage:')
-    print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
-    print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
-    print('Allocated:', round(torch.cuda.memory_allocated(1)/1024**3,1), 'GB')
-    print('Cached:   ', round(torch.cuda.memory_reserved(1)/1024**3,1), 'GB')
+    print(torch.cuda.memory_summary(0))
+    print(torch.cuda.memory_summary(1))
