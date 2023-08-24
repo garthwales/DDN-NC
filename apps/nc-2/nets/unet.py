@@ -128,7 +128,7 @@ class UNet(nn.Module):
         self.concat = nn.ModuleList([CropAndConcat() for _ in range(4)])
         # Final $1 \times 1$ convolution layer to produce the output
         self.final_conv = nn.Conv2d(32, out_channels, kernel_size=1)
-        self.final_linear = nn.LazyLinear(out_channels*out_channels)
+        # self.final_linear = nn.LazyLinear(out_channels*out_channels)
 
     def forward(self, x: torch.Tensor):
         """
@@ -161,5 +161,5 @@ class UNet(nn.Module):
         x = self.final_conv(x)
 
         # My addition of a linear layer to get the right output size
-        x = self.final_linear(x)
+        # x = self.final_linear(x)
         return x
