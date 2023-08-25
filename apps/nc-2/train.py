@@ -117,7 +117,7 @@ if __name__ == '__main__':
     
     defaults_dict = dict(
         epochs=100, 
-        batch_size = 500,
+        batch_size = 10,
         val_percent=0.1,
 
         lr = 1e-1, # will lower during training with patience
@@ -131,7 +131,8 @@ if __name__ == '__main__':
         method='exact',
         mat_type='general',
         loss_on='second_smallest',
-        net='UNet-only',
+        net='UNet',
+        net_name='UNet',
         
         size = (96,96),
         width = -1,
@@ -184,7 +185,7 @@ if __name__ == '__main__':
             assert 'provide a valid net (UNet, resnet, MLP, cnn)'
     
             
-        model = GenericNC(pre_net, 28, args.net_name, args.mat_type, args.method)
+        model = GenericNC(pre_net, args.size[0], args.net_name, args.mat_type, args.method)
     
     # NOTE: Not sure if this memory format does anything useful?
     # model = model.to(memory_format=torch.channels_last) 
