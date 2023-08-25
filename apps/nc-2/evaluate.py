@@ -16,11 +16,11 @@ def evaluate(net, dataloader, device, amp):
         for images, true_masks in tqdm(dataloader, total=num_val_batches, desc='Validation round', unit='batch', leave=False):
 
             # move images and labels to correct device and type
-            image = image.to(device)
+            images = images.to(device)
             true_masks = true_masks.to(device)
 
             # predict the mask
-            masks_pred = net(image)
+            masks_pred = net(images)
 
             loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(masks_pred[:, :, 1], true_masks)))
 
