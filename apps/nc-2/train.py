@@ -160,8 +160,8 @@ if __name__ == '__main__':
     args = wandb.config
      
     # logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    device = 'cpu'
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # device = 'cpu'
     print(f'Using device {device}')
     
     channels = 1 if args.grayscale else 3
