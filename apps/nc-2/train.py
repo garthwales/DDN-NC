@@ -4,6 +4,7 @@ import os
 import torch
 from pathlib import Path
 from torch import optim
+from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 from pprint import pprint
@@ -21,7 +22,12 @@ from utils.data_loading import TwoFolders
 
 def train_model(model, device, args):
     # 1. Create dataset
-    dataset = TwoFolders(args.dir_img, args.dir_mask)
+    
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+    
+    dataset = TwoFolders(args.dir_img, args.dir_mask, transform)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * args.val_percent)
@@ -48,8 +54,7 @@ def train_model(model, device, args):
         epoch_loss = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch}/{args.epochs}', unit='img') as pbar:
             for images, true_masks in train_loader:
-                images = images.to(device=device, memory_format=torch.channels_last)
-                true_masks = true_masks / 255
+                images = images.to(device=device) # memory_format=torch.channels_last
                 true_masks = true_masks.to(device=device)
 
                 with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=args.amp):
@@ -184,7 +189,7 @@ if __name__ == '__main__':
         model = GenericNC(pre_net, 28, args.net_name, args.mat_type, args.method)
     
     # NOTE: Not sure if this memory format does anything useful?
-    model = model.to(memory_format=torch.channels_last) 
+    # model = model.to(memory_format=torch.channels_last) 
 
     if args.load:
         state_dict = torch.load(args.load, map_location=device)
