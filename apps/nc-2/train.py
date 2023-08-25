@@ -36,7 +36,7 @@ def train_model(model, device, args):
 
     # 3. Create data loaders
     loader_args = dict(batch_size=args.batch_size, num_workers=os.cpu_count()-2, pin_memory=True)
-    train_loader = DataLoader(train_set, shuffle=True, **loader_args)
+    train_loader = DataLoader(train_set, shuffle=False, **loader_args)
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
 
     pprint(args)
@@ -99,7 +99,7 @@ def train_model(model, device, args):
                             'images': wandb.Image(images[0].cpu()),
                             'masks': {
                                 'true': wandb.Image(true_masks[0].cpu().float()),
-                                'pred': wandb.Image(masks_pred[0].cpu()),
+                                'pred': wandb.Image(masks_pred[:,:,1].view(images.shape[0],args.size[0], args.size[1])[0].cpu()),
                             },
                             'step': global_step,
                             'epoch': epoch,
@@ -116,11 +116,11 @@ def train_model(model, device, args):
 if __name__ == '__main__':
     
     defaults_dict = dict(
-        epochs=100, 
+        epochs=10, 
         batch_size = 10,
         val_percent=0.1,
 
-        lr = 1e-1, # will lower during training with patience
+        lr = 1e-3, # will lower during training with patience
         patience=5,
 
         dir_img = 'data/samples/img',
@@ -139,8 +139,8 @@ if __name__ == '__main__':
         laplace = None,
 
         seed=22, # TODO: loop through different seeds to produce different trial runs
-        gpu=1,
-        img_scale=1, # Downscaling factor of the images
+        # gpu=1,
+        # img_scale=1, # Downscaling factor of the images
 
         gradient_clipping = 1.0,
         save_checkpoint= False,
@@ -150,8 +150,8 @@ if __name__ == '__main__':
         # Not likely to use for IVCNZ at least
         amp=False, # Use mixed precision
         # Configuration does nothing, but important to note
-        optim='adam',
-        shuffle=False,
+        # optim='adam',
+        # shuffle=False,
         )
 
     wandb.init(project='IVCNZ', config=defaults_dict) # mode='disabled'
