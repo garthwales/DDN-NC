@@ -52,7 +52,7 @@ def train_model(model, device, args):
     for epoch in range(1, args.epochs + 1):
         model.train()
         epoch_loss = 0
-        with tqdm(total=n_train, desc=f'Epoch {epoch}/{args.epochs}', unit='img', position=0, leave=True) as pbar:
+        with tqdm(total=n_train, desc=f'Epoch {epoch}/{args.epochs}', unit='img', position=0, leave=False) as pbar:
             for images, true_masks in train_loader:
                 images = images.to(device=device) # memory_format=torch.channels_last
                 true_masks = true_masks.to(device=device)
@@ -93,21 +93,18 @@ def train_model(model, device, args):
                         scheduler.step(val_score)
 
                         # print('Validation loss: {}'.format(val_score))
-                        try:
-                            wandb.log({
-                                'learning rate': optimizer.param_groups[0]['lr'],
-                                'val': val_score,
-                                'images': wandb.Image(images[0].cpu()),
-                                'masks': {
-                                    'true': wandb.Image(true_masks[0].cpu()),
-                                    'pred': wandb.Image(masks_pred[0].cpu()),
-                                },
-                                'step': global_step,
-                                'epoch': epoch,
-                            })
-                                # **histograms
-                        except:
-                            pass
+                        wandb.log({
+                            'learning rate': optimizer.param_groups[0]['lr'],
+                            'val': val_score,
+                            'images': wandb.Image(images[0].cpu()),
+                            'masks': {
+                                'true': wandb.Image(true_masks[0].cpu().float()),
+                                'pred': wandb.Image(masks_pred[0].cpu()),
+                            },
+                            'step': global_step,
+                            'epoch': epoch,
+                        })
+                            # **histograms
 
         if args.save_checkpoint:
             Path(args.dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -120,10 +117,10 @@ if __name__ == '__main__':
     
     defaults_dict = dict(
         epochs=100, 
-        batch_size = 100,
+        batch_size = 500,
         val_percent=0.1,
 
-        lr = 1e-3, # will lower during training with patience
+        lr = 1e-1, # will lower during training with patience
         patience=5,
 
         dir_img = 'data/samples/img',
@@ -153,7 +150,7 @@ if __name__ == '__main__':
         amp=False, # Use mixed precision
         # Configuration does nothing, but important to note
         optim='adam',
-        shuffle=True,
+        shuffle=False,
         )
 
     wandb.init(project='IVCNZ', config=defaults_dict) # mode='disabled'
