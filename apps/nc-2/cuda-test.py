@@ -4,11 +4,7 @@ import torch
 # assert torch.cuda.device_count() == 1
 print(torch.cuda.device_count())
 
-print(torch.cuda.is_available(0))
-print(torch.cuda.is_available(1))
-print(torch.cuda.is_available(2))
-
-device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Using device:', device)
 
 print(torch.cuda.current_device())
