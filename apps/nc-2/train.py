@@ -145,7 +145,8 @@ if __name__ == '__main__':
         img_scale=1, # Downscaling factor of the images
 
         gradient_clipping = 1.0,
-        save_checkpoint= True,
+        save_checkpoint= False,
+        dir_checkpoint='',
         
         load=False, # Load model from a .pth file
         # Not likely to use for IVCNZ at least
@@ -155,7 +156,7 @@ if __name__ == '__main__':
         shuffle=True,
         )
 
-    experiment = wandb.init(project='IVCNZ', config=defaults_dict, mode='disabled')
+    experiment = wandb.init(project='IVCNZ', config=defaults_dict) # mode='disabled'
     # Config parameters are automatically set by W&B sweep agent
     args = wandb.config
      
