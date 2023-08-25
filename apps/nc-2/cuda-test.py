@@ -4,8 +4,16 @@ import torch
 # assert torch.cuda.device_count() == 1
 print(torch.cuda.device_count())
 
+print(torch.cuda.is_available(0))
+print(torch.cuda.is_available(1))
+print(torch.cuda.is_available(2))
+
 device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 print('Using device:', device)
+
+print(torch.cuda.current_device())
+
+# torch.cuda.set_device()
 
 #Additional Info when using cuda
 if device.type == 'cuda':
@@ -14,6 +22,8 @@ if device.type == 'cuda':
     print(torch.cuda.memory_summary(0))
     
     A = torch.randn((96*96, 96*96), device=device)
+    
+    print(torch.cuda.current_device())
     
     print(torch.cuda.get_device_name(1))
     print('Memory Usage:')
