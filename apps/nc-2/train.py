@@ -92,7 +92,7 @@ def train_model(model, device, args):
                         val_score = evaluate(model, val_loader, device, args.amp)
                         scheduler.step(val_score)
 
-                        print('Validation Dice score: {}'.format(val_score))
+                        print('Validation loss: {}'.format(val_score))
                         try:
                             experiment.log({
                                 'learning rate': optimizer.param_groups[0]['lr'],
@@ -119,8 +119,8 @@ def train_model(model, device, args):
 if __name__ == '__main__':
     
     defaults_dict = dict(
-        epochs=10, 
-        batch_size = 10,
+        epochs=100, 
+        batch_size = 100,
         val_percent=0.1,
 
         lr = 1e-3, # will lower during training with patience
@@ -137,7 +137,7 @@ if __name__ == '__main__':
         net='UNet-only',
         
         size = (96,96),
-        width = 50,
+        width = -1,
         laplace = None,
 
         seed=22, # TODO: loop through different seeds to produce different trial runs
