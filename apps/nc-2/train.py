@@ -1,9 +1,7 @@
-import argparse
+# import argparse
 # import logging
 import os
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from pathlib import Path
 from torch import optim
 from torch.utils.data import DataLoader, random_split
@@ -51,6 +49,7 @@ def train_model(model, device, args):
         with tqdm(total=n_train, desc=f'Epoch {epoch}/{args.epochs}', unit='img') as pbar:
             for images, true_masks in train_loader:
                 images = images.to(device=device, memory_format=torch.channels_last)
+                true_masks = true_masks / 255
                 true_masks = true_masks.to(device=device)
 
                 with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=args.amp):
@@ -156,7 +155,8 @@ if __name__ == '__main__':
     args = wandb.config
      
     # logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = 'cpu'
     print(f'Using device {device}')
     
     channels = 1 if args.grayscale else 3
