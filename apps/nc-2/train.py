@@ -41,7 +41,7 @@ def train_model(model, device, args):
 
     pprint(args)
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1.0e-3)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
     
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=args.patience)  # goal: minimize loss
     grad_scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
@@ -59,7 +59,7 @@ def train_model(model, device, args):
 
                 with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=args.amp):
                     masks_pred = model(images)
-                    loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(masks_pred[:, :, 1], true_masks)))
+                    loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(masks_pred[:, :, 1], true_masks.view(images.shape[0],-1))))
 
                 optimizer.zero_grad(set_to_none=True)
                 grad_scaler.scale(loss).backward()

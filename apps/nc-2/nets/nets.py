@@ -44,7 +44,7 @@ class GenericNC(nn.Module):
         x = self.net(z) # output b, n*n
         # TODO: force a relu here? make it always positive inputs into next?
         
-        # make square b,m,m
+        # make square b,m,m from [b, m, n, n]
         x = x.view(z.shape[0], self.w, -1)
         
         # if it is a smaller width (e.g. 100x1024 instead of 1024x1024, reshape into full matrix with 100 on diagonals)
@@ -90,7 +90,7 @@ class GenericNC(nn.Module):
                 x = 0.5 * (x + x.transpose(1, 2))
                 v, y = torch.linalg.eigh(x)
             elif self.method == 'exact':
-                print(x.shape)
+                # print(x.shape)
                 y = EigenDecompositionFcn().apply(x)
             else:
                 assert False
