@@ -52,7 +52,7 @@ def train_model(model, device, args):
     for epoch in range(1, args.epochs + 1):
         model.train()
         epoch_loss = 0
-        with tqdm(total=n_train, desc=f'Epoch {epoch}/{args.epochs}', unit='img') as pbar:
+        with tqdm(total=n_train, desc=f'Epoch {epoch}/{args.epochs}', unit='img', position=0, leave=True) as pbar:
             for images, true_masks in train_loader:
                 images = images.to(device=device) # memory_format=torch.channels_last
                 true_masks = true_masks.to(device=device)
