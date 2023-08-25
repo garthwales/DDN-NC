@@ -22,7 +22,7 @@ def evaluate(net, dataloader, device, amp):
             # predict the mask
             masks_pred = net(images)
 
-            loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(masks_pred[:, :, 1], true_masks)))
+            loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(masks_pred[:, :, 1], true_masks.view(images.shape[0],-1))))
 
     net.train()
     return loss / max(num_val_batches, 1)
