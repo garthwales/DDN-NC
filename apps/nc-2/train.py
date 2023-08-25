@@ -70,7 +70,7 @@ def train_model(model, device, args):
                 pbar.update(images.shape[0])
                 global_step += 1
                 epoch_loss += loss.item()
-                experiment.log({
+                wandb.log({
                     'train loss': loss.item(),
                     'step': global_step,
                     'epoch': epoch
@@ -81,20 +81,20 @@ def train_model(model, device, args):
                 division_step = (n_train // (5 * args.batch_size))
                 if division_step > 0:
                     if global_step % division_step == 0:
-                        histograms = {}
-                        for tag, value in model.named_parameters():
-                            tag = tag.replace('/', '.')
-                            if not (torch.isinf(value) | torch.isnan(value)).any():
-                                histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
-                            if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
-                                histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
+                        # histograms = {}
+                        # for tag, value in model.named_parameters():
+                        #     tag = tag.replace('/', '.')
+                        #     if not (torch.isinf(value) | torch.isnan(value)).any():
+                        #         histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
+                        #     if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
+                        #         histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
 
                         val_score = evaluate(model, val_loader, device, args.amp)
                         scheduler.step(val_score)
 
-                        print('Validation loss: {}'.format(val_score))
+                        # print('Validation loss: {}'.format(val_score))
                         try:
-                            experiment.log({
+                            wandb.log({
                                 'learning rate': optimizer.param_groups[0]['lr'],
                                 'val': val_score,
                                 'images': wandb.Image(images[0].cpu()),
@@ -104,8 +104,8 @@ def train_model(model, device, args):
                                 },
                                 'step': global_step,
                                 'epoch': epoch,
-                                **histograms
                             })
+                                # **histograms
                         except:
                             pass
 
@@ -156,7 +156,7 @@ if __name__ == '__main__':
         shuffle=True,
         )
 
-    experiment = wandb.init(project='IVCNZ', config=defaults_dict) # mode='disabled'
+    wandb.init(project='IVCNZ', config=defaults_dict) # mode='disabled'
     # Config parameters are automatically set by W&B sweep agent
     args = wandb.config
      
@@ -199,6 +199,7 @@ if __name__ == '__main__':
         print(f'Model loaded from {args.load}')
 
     model.to(device=device)
+    wandb.watch(model, log_freq=100)
     try:
         train_model(model, device, args)
     except torch.cuda.OutOfMemoryError:
