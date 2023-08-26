@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+import wandb
+
 from datetime import datetime
 from nets.eigen import EigenDecompositionFcn
 from utils.utils import save_plot_imgs
@@ -66,8 +68,9 @@ class GenericNC(nn.Module):
             x = reconst
         
         # TODO: replace with wandb outputs instead
-        # if self.forward_calls % 10 == 0:
-        #     save_plot_imgs(x.detach().cpu().numpy(), output_name=f'weights-{self.net_name}-{self.forward_calls}', output_path='figures/')
+        if self.forward_calls % 10 == 0:
+            wandb.log({'weight': wandb.Image(x[0].detach().cpu().numpy()),
+                        'forward_calls': self.forward_calls})
         # self.forward_calls += 1
         
         # re-format square matrix into specified type

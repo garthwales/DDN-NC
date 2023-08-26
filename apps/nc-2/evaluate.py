@@ -1,9 +1,5 @@
 import torch
-import torch.nn.functional as F
 from tqdm import tqdm
-
-# from utils.dice_score import multiclass_dice_coeff, dice_coeff
-
 
 @torch.inference_mode()
 def evaluate(net, dataloader, device, amp):
@@ -25,4 +21,4 @@ def evaluate(net, dataloader, device, amp):
             loss = 1.0 - torch.mean(torch.abs(torch.nn.functional.cosine_similarity(masks_pred[:, :, 1], true_masks.view(images.shape[0],-1))))
 
     net.train()
-    return loss / max(num_val_batches, 1)
+    return loss

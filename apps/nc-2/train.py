@@ -120,11 +120,11 @@ if __name__ == '__main__':
         batch_size = 10,
         val_percent=0.1,
 
-        lr = 1e-3, # will lower during training with patience
+        lr = 1e-4, # will lower during training with patience
         patience=5,
 
         dir_img = 'data/samples/img',
-        dir_mask = 'data/samples/tex',
+        dir_mask = 'data/samples/col',
 
 
         grayscale=False,
