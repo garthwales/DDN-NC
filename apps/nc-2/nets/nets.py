@@ -71,7 +71,7 @@ class GenericNC(nn.Module):
         if self.forward_calls % 10 == 0:
             wandb.log({'weight': wandb.Image(x[0].detach().cpu().numpy()),
                         'forward_calls': self.forward_calls})
-        # self.forward_calls += 1
+        self.forward_calls += 1
         
         # re-format square matrix into specified type
         if self.width == -1:
