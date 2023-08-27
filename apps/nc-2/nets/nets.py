@@ -80,7 +80,7 @@ class GenericNC(nn.Module):
             x = get_laplace(x, self.laplace)
             
         self.forward_calls += 1
-        if self.forward_calls % 50 == 0:
+        if self.forward_calls % 10 == 0 or self.forward_calls == 1:
             
             # this is done before solving so will see what these look like
             x_2 = x[0].detach().cpu()
