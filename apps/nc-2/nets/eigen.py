@@ -14,7 +14,7 @@ class EigenDecompositionFcn(torch.autograd.Function):
         assert (top_k is None) or (1 <= top_k <= M)
 
         with torch.no_grad():
-            lmd, Y = torch.linalg.eigh(X)
+            lmd, Y = torch.linalg.eigh(X.float())
 
         ctx.save_for_backward(lmd, Y)
         return Y if top_k is None else Y[:, :, -top_k:] # TODO: only return the second smallest for NC
