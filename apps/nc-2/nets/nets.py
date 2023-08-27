@@ -67,19 +67,6 @@ class GenericNC(nn.Module):
                         reconst[b] = torch.add(reconst[b], temp) # add the lower diagonal (symmetric)
             x = reconst
         
-        # TODO: replace with same thing.. and maybe two samples of a row reshaped?
-        if self.forward_calls % 10 == 0:
-            
-            # this is done before solving so will see what these look like
-            x_2 = x[0].detach().cpu()
-            x_2 = 0.5 * (x_2 + x_2.transpose(0, 1))
-            
-            wandb.log({'weight': wandb.Image(x_2),
-                       'row[0]': wandb.Image(x_2[0].reshape(self.n, self.n)),
-                       'row[-5]': wandb.Image(x_2[self.n*self.n-5].reshape(self.n, self.n)),
-                        'forward_calls': self.forward_calls})
-        self.forward_calls += 1
-        
         # re-format square matrix into specified type
         if self.width == -1:
             if self.matrix_type == 'general':
@@ -91,6 +78,18 @@ class GenericNC(nn.Module):
 
         if self.laplace is not None:
             x = get_laplace(x, self.laplace)
+            
+        self.forward_calls += 1
+        if self.forward_calls % 50 == 0:
+            
+            # this is done before solving so will see what these look like
+            x_2 = x[0].detach().cpu()
+            x_2 = 0.5 * (x_2 + x_2.transpose(0, 1))
+            
+            wandb.log({'weight': wandb.Image(x_2),
+                       'row[0]': wandb.Image(x_2[0].reshape(self.n, self.n)),
+                       'row[-5]': wandb.Image(x_2[self.n*self.n-5].reshape(self.n, self.n)),
+                        'forward_calls': self.forward_calls})
         
         # NOTE: 0.5 * (X + X.transpose(1, 2))
         #       is done before doing either of the eigensolvers no matter what
