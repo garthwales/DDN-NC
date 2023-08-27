@@ -12,12 +12,13 @@ from tqdm import tqdm
 import cv2
 
 class TwoFolders(Dataset):
-    def __init__(self, images_dir, masks_dir, transform=None):
+    def __init__(self, images_dir, masks_dir, transform=None, size=None):
         self.images_dir = images_dir
         self.masks_dir = masks_dir
         self.img_files = sorted(os.listdir(images_dir))
         self.col_files = sorted(os.listdir(masks_dir))
         self.transform = transform
+        self.size = size
     
     def __len__(self):
         return len(self.img_files)
@@ -29,9 +30,11 @@ class TwoFolders(Dataset):
         img_path = os.path.join(self.images_dir, img_filename)
         mask_path = os.path.join(self.masks_dir, mask_filename)
         
-        
         image = cv2.imread(img_path)
         mask = (cv2.imread(mask_path, 0) / 255) * 2 - 1
+        if self.size is not None:
+            image = cv2.resize(image, self.size)
+            mask = cv2.resize(mask, self.size)
         
         if self.transform:
             image = self.transform(image)

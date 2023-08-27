@@ -14,7 +14,7 @@ class EigenDecompositionFcn(torch.autograd.Function):
         assert (top_k is None) or (1 <= top_k <= M)
 
         with torch.no_grad():
-            lmd, Y = torch.linalg.eigh(X.float())
+            lmd, Y = torch.linalg.eigh(0.5 * (X + X.transpose(1, 2)))
 
         ctx.save_for_backward(lmd, Y)
         return Y if top_k is None else Y[:, :, -top_k:] # TODO: only return the second smallest for NC
@@ -29,7 +29,7 @@ class EigenDecompositionFcn(torch.autograd.Function):
         L = torch.where(torch.abs(L) < EigenDecompositionFcn.eps, zero, 1.0 / L)
         dJdX = torch.bmm(torch.bmm(Y, L * torch.bmm(Y.transpose(1, 2), dJdY)), Y[:, :, -K:].transpose(1, 2))
 
-        # dJdX = 0.5 * (dJdX + dJdX.transpose(1, 2)) # undo the symmetricies operation
+        dJdX = 0.5 * (dJdX + dJdX.transpose(1, 2)) # undo the symmetricies operation
 
         return dJdX, None
 

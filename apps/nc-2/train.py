@@ -27,7 +27,7 @@ def train_model(model, device, args):
         transforms.ToTensor(),
     ])
     
-    dataset = TwoFolders(args.dir_img, args.dir_mask, transform)
+    dataset = TwoFolders(args.dir_img, args.dir_mask, transform, args.size)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * args.val_percent)
@@ -35,7 +35,7 @@ def train_model(model, device, args):
     train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(args.seed))
 
     # 3. Create data loaders
-    loader_args = dict(batch_size=args.batch_size, num_workers=os.cpu_count()-2, pin_memory=True)
+    loader_args = dict(batch_size=args.batch_size, num_workers=os.cpu_count()-1, pin_memory=True)
     train_loader = DataLoader(train_set, shuffle=False, **loader_args)
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
 
@@ -47,6 +47,8 @@ def train_model(model, device, args):
     grad_scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
     
     global_step = 0
+    
+    torch.cuda.empty_cache()
 
     # 5. Begin training
     for epoch in range(1, args.epochs + 1):
@@ -62,7 +64,8 @@ def train_model(model, device, args):
 
                 optimizer.zero_grad(set_to_none=True)
                 grad_scaler.scale(loss).backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), args.gradient_clipping)
+                if args.gradient_clipping is not None:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), args.gradient_clipping)
                 grad_scaler.step(optimizer)
                 grad_scaler.update()
 
@@ -85,7 +88,7 @@ def train_model(model, device, args):
                 # Evaluation round
                 # division_step = (n_train // (5 * args.batch_size))
                 # if division_step > 0:
-                if global_step % 5 == 0:
+                if global_step % 5 == 0 or global_step == 1:
                     val_score = evaluate(model, val_loader, device, args.amp)
                     scheduler.step(val_score)
 
@@ -113,12 +116,12 @@ def train_model(model, device, args):
 if __name__ == '__main__':
     
     defaults_dict = dict(
-        epochs=2, 
-        batch_size = 10,
+        epochs=3, 
+        batch_size = 50,
         val_percent=0.1,
 
-        lr = 1e-2, # will lower during training with patience
-        patience=3,
+        lr = 1e-3, # will lower during training with patience
+        patience=4,
 
         dir_img = 'data/samples/img',
         dir_mask = 'data/samples/col',
@@ -131,7 +134,7 @@ if __name__ == '__main__':
         net='UNet',
         net_name='UNet',
         
-        size = (96,96),
+        size = (48,48),
         width = -1,
         laplace = None,
 
@@ -139,15 +142,15 @@ if __name__ == '__main__':
         # gpu=1,
         # img_scale=1, # Downscaling factor of the images
 
-        gradient_clipping = 1.0,
+        gradient_clipping = None,
         save_checkpoint= False,
         dir_checkpoint='',
         
         load=False, # Load model from a .pth file
         # Not likely to use for IVCNZ at least
-        amp=True, # Use mixed precision
+        amp=False, # Use mixed precision
         # Configuration does nothing, but important to note
-        # optim='adam',
+        optim='AdamW',
         # shuffle=False,
         )
 
@@ -155,9 +158,9 @@ if __name__ == '__main__':
     # Config parameters are automatically set by W&B sweep agent
     args = wandb.config
      
-    # logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # device = 'cpu'
+    # device = torch.device('cpu')
+
     print(f'Using device {device}')
     
     channels = 1 if args.grayscale else 3
