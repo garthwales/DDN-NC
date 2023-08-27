@@ -68,7 +68,7 @@ class GenericNC(nn.Module):
             x = reconst
         
         # TODO: replace with same thing.. and maybe two samples of a row reshaped?
-        if self.forward_calls % 5 == 0:
+        if self.forward_calls % 10 == 0:
             
             # this is done before solving so will see what these look like
             x_2 = x[0].detach().cpu()

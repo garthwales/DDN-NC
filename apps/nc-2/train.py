@@ -73,7 +73,12 @@ def train_model(model, device, args):
                     'step': global_step,
                     'epoch': epoch,
                     'min_pred': torch.min(masks_pred).item(),
-                    'max_pred': torch.max(masks_pred).item()
+                    'max_pred': torch.max(masks_pred).item(),
+                    'avg_pred': torch.mean(masks_pred).item(),
+                    
+                    'min_true': torch.min(true_masks).item(),
+                    'max_true': torch.max(true_masks).item(),
+                    'avg_true': torch.mean(true_masks).item(),
                 })
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
@@ -108,11 +113,11 @@ def train_model(model, device, args):
 if __name__ == '__main__':
     
     defaults_dict = dict(
-        epochs=3, 
+        epochs=2, 
         batch_size = 10,
         val_percent=0.1,
 
-        lr = 1e-3, # will lower during training with patience
+        lr = 1e-4, # will lower during training with patience
         patience=2,
 
         dir_img = 'data/samples/img',
@@ -170,7 +175,7 @@ if __name__ == '__main__':
             # X_input = X_input.flatten(start_dim=1) # Flatten to match linear layers? IDK
             pre_net = BasicMLP(channels*args.size[0]*args.size[1], args.size[0])
         elif args.net == 'cnn':
-            pre_net = BasicCNN(args.size[1], args.width*args.size[0]*args.size[0])
+            pre_net = BasicCNN(args.size[1], args.size[0]*args.size[0]*args.size[0]*args.size[0])
         elif args.net == 'vgg':
             assert 'not implemented yet'
         else:
