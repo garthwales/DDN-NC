@@ -113,7 +113,7 @@ def train_model(model, device, args):
 if __name__ == '__main__':
     
     defaults_dict = dict(
-        epochs=10, 
+        epochs=2, 
         batch_size = 10,
         val_percent=0.1,
 
@@ -133,7 +133,7 @@ if __name__ == '__main__':
         
         size = (96,96),
         width = -1,
-        laplace = 'basic',
+        laplace = None,
 
         seed=22, # TODO: loop through different seeds to produce different trial runs
         # gpu=1,
@@ -145,7 +145,7 @@ if __name__ == '__main__':
         
         load=False, # Load model from a .pth file
         # Not likely to use for IVCNZ at least
-        amp=False, # Use mixed precision
+        amp=True, # Use mixed precision
         # Configuration does nothing, but important to note
         # optim='adam',
         # shuffle=False,
