@@ -51,7 +51,6 @@ def train_model(model, device, args):
     # 5. Begin training
     for epoch in range(1, args.epochs + 1):
         model.train()
-        epoch_loss = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch}/{args.epochs}', unit='img', position=0, leave=False) as pbar:
             for images, true_masks in train_loader:
                 images = images.to(device=device) # memory_format=torch.channels_last
@@ -69,42 +68,35 @@ def train_model(model, device, args):
 
                 pbar.update(images.shape[0])
                 global_step += 1
-                epoch_loss += loss.item()
                 wandb.log({
                     'train loss': loss.item(),
                     'step': global_step,
-                    'epoch': epoch
+                    'epoch': epoch,
+                    'min_pred': torch.min(masks_pred).item(),
+                    'max_pred': torch.max(masks_pred).item()
                 })
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
                 # Evaluation round
-                division_step = (n_train // (5 * args.batch_size))
-                if division_step > 0:
-                    if global_step % division_step == 0:
-                        # histograms = {}
-                        # for tag, value in model.named_parameters():
-                        #     tag = tag.replace('/', '.')
-                        #     if not (torch.isinf(value) | torch.isnan(value)).any():
-                        #         histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
-                        #     if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
-                        #         histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
+                # division_step = (n_train // (5 * args.batch_size))
+                # if division_step > 0:
+                if global_step % 5 == 0:
+                    val_score = evaluate(model, val_loader, device, args.amp)
+                    scheduler.step(val_score)
 
-                        val_score = evaluate(model, val_loader, device, args.amp)
-                        scheduler.step(val_score)
-
-                        # print('Validation loss: {}'.format(val_score))
-                        wandb.log({
-                            'learning rate': optimizer.param_groups[0]['lr'],
-                            'val': val_score,
-                            'images': wandb.Image(images[0].cpu()),
-                            'masks': {
-                                'true': wandb.Image(true_masks[0].cpu().float()),
-                                'pred': wandb.Image(masks_pred[:,:,1].view(images.shape[0],args.size[0], args.size[1])[0].cpu()),
-                            },
-                            'step': global_step,
-                            'epoch': epoch,
-                        })
-                            # **histograms
+                    # print('Validation loss: {}'.format(val_score))
+                    wandb.log({
+                        'learning rate': optimizer.param_groups[0]['lr'],
+                        'val': val_score,
+                        'images': wandb.Image(images[0].cpu()),
+                        'masks': {
+                            'true': wandb.Image(true_masks[0].cpu().float()),
+                            'pred': wandb.Image(masks_pred[:,:,1].view(images.shape[0],args.size[0], args.size[1])[0].cpu()),
+                        },
+                        'step': global_step,
+                        'epoch': epoch,
+                    })
+                        # **histograms
 
         if args.save_checkpoint:
             Path(args.dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -116,12 +108,12 @@ def train_model(model, device, args):
 if __name__ == '__main__':
     
     defaults_dict = dict(
-        epochs=10, 
+        epochs=3, 
         batch_size = 10,
         val_percent=0.1,
 
-        lr = 1e-4, # will lower during training with patience
-        patience=5,
+        lr = 1e-3, # will lower during training with patience
+        patience=2,
 
         dir_img = 'data/samples/img',
         dir_mask = 'data/samples/col',

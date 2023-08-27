@@ -67,9 +67,16 @@ class GenericNC(nn.Module):
                         reconst[b] = torch.add(reconst[b], temp) # add the lower diagonal (symmetric)
             x = reconst
         
-        # TODO: replace with wandb outputs instead
-        if self.forward_calls % 10 == 0:
-            wandb.log({'weight': wandb.Image(x[0].detach().cpu().numpy()),
+        # TODO: replace with same thing.. and maybe two samples of a row reshaped?
+        if self.forward_calls % 5 == 0:
+            
+            # this is done before solving so will see what these look like
+            x_2 = x[0].detach().cpu()
+            x_2 = 0.5 * (x_2 + x_2.transpose(0, 1))
+            
+            wandb.log({'weight': wandb.Image(x_2),
+                       'row[0]': wandb.Image(x_2[0].reshape(self.n, self.n)),
+                       'row[-5]': wandb.Image(x_2[self.n*self.n-5].reshape(self.n, self.n)),
                         'forward_calls': self.forward_calls})
         self.forward_calls += 1
         
