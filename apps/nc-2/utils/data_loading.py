@@ -31,7 +31,7 @@ class TwoFolders(Dataset):
         
         
         image = cv2.imread(img_path)
-        mask = cv2.imread(mask_path, 0) / 255
+        mask = (cv2.imread(mask_path, 0) / 255) * 2 - 1
         
         if self.transform:
             image = self.transform(image)
