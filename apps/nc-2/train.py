@@ -76,9 +76,9 @@ def train_model(model, device, args):
                     'max_pred': torch.max(masks_pred).item(),
                     'avg_pred': torch.mean(masks_pred).item(),
                     
-                    'min_true': torch.min(true_masks).item(),
-                    'max_true': torch.max(true_masks).item(),
-                    'avg_true': torch.mean(true_masks).item(),
+                    # 'min_true': torch.min(true_masks).item(),
+                    # 'max_true': torch.max(true_masks).item(),
+                    # 'avg_true': torch.mean(true_masks).item(),
                 })
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
@@ -113,12 +113,12 @@ def train_model(model, device, args):
 if __name__ == '__main__':
     
     defaults_dict = dict(
-        epochs=2, 
+        epochs=5, 
         batch_size = 10,
         val_percent=0.1,
 
-        lr = 1e-4, # will lower during training with patience
-        patience=2,
+        lr = 1e-2, # will lower during training with patience
+        patience=3,
 
         dir_img = 'data/samples/img',
         dir_mask = 'data/samples/col',
@@ -133,7 +133,7 @@ if __name__ == '__main__':
         
         size = (96,96),
         width = -1,
-        laplace = None,
+        laplace = 'basic',
 
         seed=22, # TODO: loop through different seeds to produce different trial runs
         # gpu=1,
