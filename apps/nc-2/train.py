@@ -113,7 +113,7 @@ def train_model(model, device, args):
 if __name__ == '__main__':
     
     defaults_dict = dict(
-        epochs=5, 
+        epochs=10, 
         batch_size = 10,
         val_percent=0.1,
 
