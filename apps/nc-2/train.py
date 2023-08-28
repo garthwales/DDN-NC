@@ -50,6 +50,8 @@ def train_model(model, device, args):
     
     torch.cuda.empty_cache()
 
+    wandb.watch(model, log_freq=100)
+    
     # 5. Begin training
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -116,12 +118,12 @@ def train_model(model, device, args):
 if __name__ == '__main__':
     
     defaults_dict = dict(
-        epochs=10, 
-        batch_size = 50,
+        epochs=100, 
+        batch_size = 100,
         val_percent=0.1,
 
-        lr = 1e-2, # will lower during training with patience
-        patience=3,
+        lr = 1e-1, # will lower during training with patience
+        patience=5,
 
         dir_img = 'data/samples/img',
         dir_mask = 'data/samples/tex',
@@ -137,7 +139,7 @@ if __name__ == '__main__':
         width = 100,
         laplace = None,
 
-        seed=22, # TODO: loop through different seeds to produce different trial runs
+        seed=10, # TODO: loop through different seeds to produce different trial runs
         # gpu=1,
         # img_scale=1, # Downscaling factor of the images
 
@@ -196,7 +198,6 @@ if __name__ == '__main__':
         print(f'Model loaded from {args.load}')
 
     model.to(device=device)
-    wandb.watch(model, log_freq=100)
     try:
         train_model(model, device, args)
     except torch.cuda.OutOfMemoryError:
