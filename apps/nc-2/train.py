@@ -126,7 +126,7 @@ if __name__ == '__main__':
         patience=5,
 
         dir_img = 'data/samples/img',
-        dir_mask = 'data/samples/tex',
+        dir_mask = 'data/samples/col',
 
         grayscale=False,
         method='exact',
