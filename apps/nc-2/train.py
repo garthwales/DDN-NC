@@ -116,26 +116,25 @@ def train_model(model, device, args):
 if __name__ == '__main__':
     
     defaults_dict = dict(
-        epochs=3, 
+        epochs=10, 
         batch_size = 50,
         val_percent=0.1,
 
-        lr = 1e-3, # will lower during training with patience
-        patience=4,
+        lr = 1e-2, # will lower during training with patience
+        patience=3,
 
         dir_img = 'data/samples/img',
         dir_mask = 'data/samples/col',
 
-
         grayscale=False,
         method='exact',
-        mat_type='general',
+        mat_type='psd',
         loss_on='second_smallest',
         net='UNet',
         net_name='UNet',
         
         size = (48,48),
-        width = -1,
+        width = 100,
         laplace = None,
 
         seed=22, # TODO: loop through different seeds to produce different trial runs

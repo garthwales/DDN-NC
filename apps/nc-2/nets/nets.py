@@ -170,9 +170,6 @@ class BasicCNN(nn.Module):
         
         self.fc1 = nn.LazyLinear(1 * n * n)
         self.fc2 = nn.Linear(1 * n * n, out_size)
-        
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
         self.relu = nn.ReLU()
 
     def forward(self, x):
