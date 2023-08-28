@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
         grayscale=False,
         method='exact',
-        mat_type='psd',
+        mat_type='general',
         loss_on='second_smallest',
         net='UNet',
         net_name='UNet',
