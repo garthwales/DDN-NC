@@ -188,8 +188,6 @@ if __name__ == '__main__':
             
         model = GenericNC(pre_net, args.size[0], args.net_name, args.mat_type, args.method)
     
-    # NOTE: Not sure if this memory format does anything useful?
-    # model = model.to(memory_format=torch.channels_last) 
 
     if args.load:
         state_dict = torch.load(args.load, map_location=device)
