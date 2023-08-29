@@ -1,10 +1,11 @@
+#include <stdio.h>
 #include <opencv2/opencv.hpp>
 
 void loadTextures(std::vector<cv::Mat>& textures) {
 	char fname[256];
 	for (int i = 1; i < 6; ++i) {
 		for (int j = 1; j < 15; ++j) {
-			sprintf_s(fname, 256, "textures/1.%d.%02d.tiff", i, j);
+			snprintf(fname, 255, "textures/1.%d.%02d.tiff", i, j);
 			cv::Mat T = cv::imread(fname, cv::IMREAD_COLOR);
 			if (!T.empty()) {
 				textures.push_back(T);
@@ -29,7 +30,7 @@ void splitVert(cv::Mat& I) {
 	cv::line(I, cv::Point(x48, 48), cv::Point(x72, 72), cv::Scalar(255, 255, 255), 1, cv::LINE_8);
 	cv::line(I, cv::Point(x72, 72), cv::Point(x95, 95), cv::Scalar(255, 255, 255), 1, cv::LINE_8);
  
-	cv::floodFill(I, cv::Point(48, 90), cv::Scalar(255, 255, 255));
+	cv::floodFill(I, cv::Point(x0+5, 5), cv::Scalar(255, 255, 255));
 }
 
 void splitHorz(cv::Mat& I) {
@@ -115,11 +116,11 @@ int main() {
 		cv::imshow("Image", img);
 		cv::imshow("Colour", col);
 		cv::imshow("Texture", tex);
-		sprintf_s(fname, 255, "samples/img%04d.png", count);
+		snprintf(fname, 255, "samples/img/img%04d.png", count);
 		cv::imwrite(fname, img);
-		sprintf_s(fname, 255, "samples/col%04d.png", count);
+		snprintf(fname, 255, "samples/col/col%04d.png", count);
 		cv::imwrite(fname, col);
-		sprintf_s(fname, 255, "samples/tex%04d.png", count);
+		snprintf(fname, 255, "samples/tex/tex%04d.png", count);
 		cv::imwrite(fname, tex);
 
 		done = cv::waitKey(10) != noKey;
