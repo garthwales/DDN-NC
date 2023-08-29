@@ -119,14 +119,14 @@ if __name__ == '__main__':
     
     defaults_dict = dict(
         epochs=100, 
-        batch_size = 100,
+        batch_size = 10,
         val_percent=0.1,
 
-        lr = 1e-1, # will lower during training with patience
+        lr = 1e-3, # will lower during training with patience
         patience=5,
 
-        dir_img = 'data/samples/img',
-        dir_mask = 'data/samples/tex',
+        dir_img = 'data/samples/img2',
+        dir_mask = 'data/samples/tex2',
 
         grayscale=False,
         method='exact',
@@ -143,7 +143,7 @@ if __name__ == '__main__':
         # gpu=1,
         # img_scale=1, # Downscaling factor of the images
 
-        gradient_clipping = None,
+        gradient_clipping = 1,
         save_checkpoint= False,
         dir_checkpoint='',
         
