@@ -126,7 +126,7 @@ if __name__ == '__main__':
         patience=5,
 
         dir_img = 'data/samples/img',
-        dir_mask = 'data/samples/col',
+        dir_mask = 'data/samples/tex',
 
         grayscale=False,
         method='exact',
@@ -136,7 +136,7 @@ if __name__ == '__main__':
         net_name='UNet',
         
         size = (48,48),
-        width = 100,
+        width = -1,
         laplace = None,
 
         seed=10, # TODO: loop through different seeds to produce different trial runs
