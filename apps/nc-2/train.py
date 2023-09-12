@@ -107,6 +107,10 @@ def train_model(model, device, args):
                         'epoch': epoch,
                     })
                         # **histograms
+                        
+                    # Log NCutCost (obj and const)
+                    # Log Eigen solution value? (e.g. the other potential obj funcs)
+                    # Log Histogram of pred values
 
         if args.save_checkpoint:
             Path(args.dir_checkpoint).mkdir(parents=True, exist_ok=True)
