@@ -7,11 +7,11 @@ class LeNet(nn.Module):
     def __init__(self, numChannels):
         # call the parent constructor
         super(LeNet, self).__init__()
-        # initialize first set of CONV => RELU => POOL layers
+        # CONV => RELU => POOL layers
         self.conv1 = nn.Conv2d(in_channels=numChannels, out_channels=20, kernel_size=(5, 5))
         self.relu1 = nn.ReLU()
         self.maxpool1 = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
-        # initialize second set of CONV => RELU => POOL layers
+        # CONV => RELU => POOL layers
         self.conv2 = nn.Conv2d(in_channels=20, out_channels=50, kernel_size=(5, 5))
         self.relu2 = nn.ReLU()
         self.maxpool2 = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
@@ -73,4 +73,6 @@ class SiameseNetwork(nn.Module):
     
     
 # Initialize W&B
-wandb.init(project="siamese", name='baby_weight_test', mode='disabled')
+wandb.init(project="siamese", mode='disabled')
+
+
