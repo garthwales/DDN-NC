@@ -1,12 +1,23 @@
 import numpy as np
 
 def dissimilarity(values):
-    X,Y = values.shape
-    distances = np.zeros((X*Y, X*Y), dtype=int)
-    for i in range(X*Y):
-        for j in range(X*Y):
-            distances[i, j] = abs(values[i] - values[j])
-    return distances
+    sigma_value = 0.1
+    sigma_spatial = 4
+    
+    N,N = values.shape # assumes square
+    weights = np.zeros((N * N, N * N))
+
+    values = values.flatten()
+    for u in range(N * N):
+        for v in range(N * N):
+            x_u, y_u = divmod(u, N)
+            x_v, y_v = divmod(v, N)
+            
+            w_value = np.exp(-((values[u] - values[v]) ** 2) / (2 * sigma_value ** 2))
+            w_spatial = np.exp(-((x_u - x_v) ** 2 + (y_u - y_v) ** 2) / (2 * sigma_spatial ** 2))
+
+            weights[u][v] = w_value * w_spatial
+    return weights
             
 def distance_wrapped(N):
     distances = np.zeros((N*N, N*N), dtype=int)
@@ -29,7 +40,7 @@ def distance_manhattan(N):
 
     for u in range(N * N):
         for v in range(N * N):
-            coord1 = np.array([u // N, u % N])
-            coord2 = np.array([v // N, v % N])
+            coord1 = np.array(divmod(u, N))
+            coord2 = np.array(divmod(v, N))
             distances[u, v] = np.sum(np.abs(coord1 - coord2))
     return distances
