@@ -8,11 +8,11 @@ class LeNet(nn.Module):
         # call the parent constructor
         super(LeNet, self).__init__()
         # CONV => RELU => POOL layers
-        self.conv1 = nn.Conv2d(in_channels=numChannels, out_channels=20, kernel_size=(5, 5))
+        self.conv1 = nn.Conv2d(in_channels=numChannels, out_channels=10, kernel_size=(5, 5))
         self.relu1 = nn.ReLU()
         self.maxpool1 = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
         # CONV => RELU => POOL layers
-        self.conv2 = nn.Conv2d(in_channels=20, out_channels=50, kernel_size=(5, 5))
+        self.conv2 = nn.Conv2d(in_channels=10, out_channels=20, kernel_size=(5, 5))
         self.relu2 = nn.ReLU()
         self.maxpool2 = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
   
@@ -71,8 +71,38 @@ class SiameseNetwork(nn.Module):
         output = self.cls_head(combined_features)
         return output
     
+def train(model, train_loader, epochs=10, lr=1e-3, trials=1):
+    model.train()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     
-# Initialize W&B
-wandb.init(project="siamese", mode='disabled')
+    learning_curves = [[] for i in range(trials)]
+    
+    for trial in range(trials):
+        for epoch in range(epochs):
+            # for batch_input, batch_target in train_loader:
+            
+            optimizer.zero_grad(set_to_none=True)
+            batch_pred = model(batch_input[0], batch_input[1])
+            loss = torch.linalg.norm(batch_pred - batch_target) # TODO: replace with better loss
+            learning_curves[trial].append(float(loss.item()))
+            loss.backward()
+            optimizer.step()
+                # if (i % 100 == 0):
+                #     print("{: 3} {: 6}: {}".format(trial, i, loss.item()))
+    
+    
+def main():
+    # Initialize W&B
+    wandb.init(project="siamese", mode='disabled')
+
+    net = SiameseNetwork(3)
+    
+    # TODO: deal with loading the data for patches....
+    # 50/50 same image, if same image then 1 as target
+    # etc etc?
+    # train(net, meh, 10, 1e-3, 2)
 
 
+
+if __name__ == "__main__":
+    main()
