@@ -172,7 +172,7 @@ class MatrixNet(nn.Module):
     def __init__(self):
         super(MatrixNet, self).__init__()
         self.n = 10
-        self.d = 3
+        self.d = 5
         distance_matrix = distance_manhattan(self.n)
         self.pairs = get_pairs_within_threshold(distance_matrix, self.d)
         self.net = SiameseNetworkLeNet()
