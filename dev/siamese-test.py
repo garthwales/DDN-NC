@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 
+from torch.profiler import profile, record_function, ProfilerActivity
+
 def PlotResults(exact_curves, fcn=plt.semilogy):
     """plot results of experiments."""
 
@@ -153,6 +155,7 @@ def get_pairs_within_threshold(distance_matrix, threshold):
 def print_memory_usage():
     print("Memory Allocated:", torch.cuda.memory_allocated() / 1e6, "MB")
     print("Cached Memory:", torch.cuda.memory_reserved() / 1e6, "MB")
+    print("Max Memory:", torch.cuda.max_memory_allocated(), "bytes")
         
 def compute_difference_matrix(img):
     # Flatten the image to have each pixel as a row vector
@@ -169,11 +172,11 @@ def compute_difference_matrix(img):
     return binary_diff
 
 class MatrixNet(nn.Module):
-    def __init__(self):
+    def __init__(self, shape, d=5):
         super(MatrixNet, self).__init__()
-        self.n = 10
-        self.d = 5
-        distance_matrix = distance_manhattan(self.n)
+        self.d = d
+        self.n = shape[2] # C,W,H or W,H,C work with [2] but should be W,H,C within
+        distance_matrix = distance_manhattan(self.n) 
         self.pairs = get_pairs_within_threshold(distance_matrix, self.d)
         self.net = SiameseNetworkLeNet()
         
@@ -185,22 +188,34 @@ class MatrixNet(nn.Module):
             x[i][j] = self.net(patch1, patch2)
         return x
     
-print_memory_usage()
-img = torch.tensor(cv2.imread('green-white-10x10.png')/255, requires_grad=True)
-test = MatrixNet()
+# print_memory_usage()
+# img = torch.tensor(cv2.imread('green-white-10x10.png')/255, requires_grad=True)
+# img.to('cuda')
 
-output = test(img)
-print_memory_usage()
+# random_inputs = torch.randn((5,10,10,3), requires_grad=True) # 5Gb
+random_inputs = torch.randn((1,50,50,3), requires_grad=True) # 24 Gb
+
+i = 0
+test = MatrixNet(random_inputs.shape)
+with profile(activities=[ProfilerActivity.CPU], record_shapes=True, profile_memory=True) as prof:
+    with record_function("model_inference"):
+        for img_test in random_inputs:
+            output = test(img_test)
+            print('done {i}')
+
+print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
+
+# print(output)
 
 
-plt.imshow(compute_difference_matrix(img))
-plt.savefig('target.pdf', dpi=300, bbox_inches='tight')
+# plt.imshow(compute_difference_matrix(img))
+# plt.savefig('target.pdf', dpi=300, bbox_inches='tight')
 
-plt.imshow(output.detach().numpy())
-plt.savefig('random.pdf', dpi=300, bbox_inches='tight')
+# plt.imshow(output.detach().numpy())
+# plt.savefig('random.pdf', dpi=300, bbox_inches='tight')
 
-plt.imshow(img.detach().numpy())
-plt.savefig('input.pdf', dpi=300, bbox_inches='tight')
+# plt.imshow(img.detach().numpy())
+# plt.savefig('input.pdf', dpi=300, bbox_inches='tight')
 
 # Training loop parameters
 if False:
