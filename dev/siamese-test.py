@@ -192,11 +192,15 @@ class MatrixNet(nn.Module):
 # img = torch.tensor(cv2.imread('green-white-10x10.png')/255, requires_grad=True)
 # img.to('cuda')
 
-# random_inputs = torch.randn((5,10,10,3), requires_grad=True) # 5Gb
-random_inputs = torch.randn((1,50,50,3), requires_grad=True) # 24 Gb
+# random_inputs = torch.randn((5,10,10,3), requires_grad=True) # 5G for d=5
+# random_inputs = torch.randn((1,50,50,3), requires_grad=True) # 24 G for d=5
+# random_inputs = torch.randn((1,50,50,3), requires_grad=False) # 10G + a seemingly 4Gb in profiler overhead (occurs after model is done) for d=5
+# random_inputs = torch.randn((1,50,50,3), requires_grad=False) # ~400M for d=1?
+# random_inputs = torch.randn((1,50,50,3), requires_grad=False) # ~1G for d=2?
+random_inputs = torch.randn((2,50,50,3), requires_grad=False) # ~2G for d=2?
 
 i = 0
-test = MatrixNet(random_inputs.shape)
+test = MatrixNet(random_inputs.shape, 2)
 with profile(activities=[ProfilerActivity.CPU], record_shapes=True, profile_memory=True) as prof:
     with record_function("model_inference"):
         for img_test in random_inputs:
