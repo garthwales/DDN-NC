@@ -95,25 +95,70 @@ def get_pairs_within_threshold(distance_matrix, threshold):
 
     return pairs
 
+class EigenDecompositionFcn(torch.autograd.Function):
+    """PyTorch autograd function for eigen decomposition of real symmetric matrices. Returns all eigenvectors
+    or just eigenvectors associated with the top-k eigenvalues. The input matrix is made symmetric within the
+    forward evaluation function."""
+
+    eps = 1.0e-9 # tolerance to consider two eigenvalues equal
+
+    @staticmethod
+    def forward(ctx, X, top_k=None):
+        B, M, N = X.shape
+        assert N == M
+        assert (top_k is None) or (1 <= top_k <= M)
+
+        with torch.no_grad():
+            lmd, Y = torch.linalg.eigh(X,UPLO='U')
+
+        ctx.save_for_backward(lmd, Y)
+        return Y if top_k is None else Y[:, :, -top_k:] # TODO: only return the second smallest for NC
+
+    @staticmethod
+    def backward(ctx, dJdY):
+        lmd, Y = ctx.saved_tensors
+        B, M, K = dJdY.shape
+
+        zero = torch.zeros(1, dtype=lmd.dtype, device=lmd.device)
+        L = lmd[:, -K:].view(B, 1, K) - lmd.view(B, M, 1)
+        L = torch.where(torch.abs(L) < EigenDecompositionFcn.eps, zero, 1.0 / L)
+        dJdX = torch.bmm(torch.bmm(Y, L * torch.bmm(Y.transpose(1, 2), dJdY)), Y[:, :, -K:].transpose(1, 2))
+        
+        return dJdX, None
+
 class MatrixNet(nn.Module):
-    def __init__(self):
+    """
+    For one image, compare 3x3 patches within to produce a weights matrix
+    """
+    def __init__(self, shape, d=1):
         super(MatrixNet, self).__init__()
-        self.n = 10
-        self.d = 5
-        distance_matrix = distance_manhattan(self.n)
+        self.d = d
+        self.n = shape[2] # C,W,H or W,H,C work with [2] but should be W,H,C within
+        distance_matrix = distance_manhattan(self.n) 
         self.pairs = get_pairs_within_threshold(distance_matrix, self.d)
         self.net = SiameseNetworkLeNet()
+        self.nc = EigenDecompositionFcn()
         
     def forward(self, image):
         x = torch.zeros((self.n*self.n, self.n*self.n))
         for i,j in self.pairs:
-            patch1 = extract_3x3_patch(image, i//self.n, i % self.n)
+            patch1 = extract_3x3_patch(image, i//self.n, i % self.n) # TODO: verify if this part is correct.. for now ignore
             patch2 = extract_3x3_patch(image, i//self.n, j % self.n)
             x[i][j] = self.net(patch1, patch2)
         return x
     
-
-rand_inputs = torch.randn(100,10,10,3)
+class NC(nn.Module):
+    """
+    Take a weights matrix and compute eigenvector
+    """
+    
+    def forward(self, x):
+        y = EigenDecompositionFcn().apply(x)[:, 1] # second smallest eigenvector.. no batch dim
+        return y
+    
+rand_inputs = torch.randn(100,10,10,1)
+model = MatrixNet(rand_inputs.shape, d=1)
+# Learn matricies of b/w images for now
 
 
 # loop through batches
