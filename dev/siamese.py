@@ -2,9 +2,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 import matplotlib.pyplot as plt
-import cv2
+
+from matrix import *
 
 def extract_3x3_patch(image, x, y):
     # Ensure the input image is a torch tensor
@@ -69,31 +69,6 @@ class SiameseNetworkLeNet(nn.Module):
         dissimilarity_score = torch.sigmoid(euclidean_distance)
         
         return dissimilarity_score
-    
-def distance_manhattan(N):
-    distances = np.zeros((N * N, N * N), dtype=int)
-
-    for u in range(N * N):
-        for v in range(N * N):
-            coord1 = np.array(divmod(u, N))
-            coord2 = np.array(divmod(v, N))
-            distances[u, v] = np.sum(np.abs(coord1 - coord2))
-    return distances
-
-def get_pairs_within_threshold(distance_matrix, threshold):
-    # Get the upper triangle indices
-    i, j = np.triu_indices(distance_matrix.shape[0], k=1)
-    
-    # Set the diagonal to values greater than the threshold
-    np.fill_diagonal(distance_matrix, threshold + 1)
-    
-    # Filter the pairs based on the threshold
-    mask = distance_matrix[i, j] < threshold
-    
-    # Get the pairs where the condition is met
-    pairs = list(zip(i[mask], j[mask]))
-
-    return pairs
 
 class EigenDecompositionFcn(torch.autograd.Function):
     """PyTorch autograd function for eigen decomposition of real symmetric matrices. Returns all eigenvectors
@@ -156,15 +131,53 @@ class NC(nn.Module):
         y = EigenDecompositionFcn().apply(x)[:, 1] # second smallest eigenvector.. no batch dim
         return y
     
-rand_inputs = torch.randn(100,10,10,1)
-model = MatrixNet(rand_inputs.shape, d=1)
+    
+d = 1
+lr = 1e-3
+epochs = 10
+    
+rand_inputs = torch.rand(10,20,20, requires_grad=True)
+# TODO: then add a blank dimension 1 to end for the rest of the network :)
+
+
+# Assert the pytorch version (fast) is about as accurate as 1e-7 numpy (slow) version
+
+# test1 = torch.tensor(dissimilarity(rand_inputs[0]))
+# print(test1.shape)
+# test2 = dissimilarity_torch(rand_inputs[0].double())
+# print(test2.shape)
+# epsilon = 1e-7  # Tolerance level
+# diff = torch.abs(test1 - test2)
+# print(diff)
+# assert torch.all(diff < epsilon)
+
+rand_targets = []
+distance_matrix = distance_manhattan(rand_inputs.shape[2]) 
+for i, values in enumerate(rand_inputs):
+    x = dissimilarity_torch(values)
+    x = torch.triu(x, 1)
+    
+    pairs = get_pairs_outside_threshold(distance_matrix, 1)
+    for i,j in pairs:
+        x[i][j] = 0
+    
+    rand_targets.append(x)
+rand_targets = torch.stack(rand_targets)
+# torch.save(rand_targets, 'rand_targets.pt')
+
+model = MatrixNet(rand_inputs.shape, d=d)
 # Learn matricies of b/w images for now
 
+criterion = nn.MSELoss()
+optimizer = torch.optim.AdamW(model.parameters())
+device = 'cpu'
 
 # loop through batches
-for (inputs, labels) in data_loader:
-
-    # extract inputs and labels
+i = 0
+for (inputs, labels) in zip(rand_inputs, rand_targets):
+    print(i)
+    i += 1
+    
     inputs = inputs.to(device)
     labels = labels.to(device)
 
