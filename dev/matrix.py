@@ -23,7 +23,8 @@ def dissimilarity_torch(values):
     import torch
     
     sigma_value = 0.1
-    sigma_spatial = 4.0
+    # sigma_spatial = 4.0
+    sigma_spatial = 0
     
     N, _ = values.shape
     device = values.device
@@ -40,7 +41,10 @@ def dissimilarity_torch(values):
     y_v = y_grid.reshape(1, -1).repeat(N*N, 1)
 
     # Compute spatial weights
-    w_spatial = torch.exp(-((x_u - x_v)**2 + (y_u - y_v)**2) / (2 * sigma_spatial**2))
+    if sigma_spatial != 0:
+        w_spatial = torch.exp(-((x_u - x_v)**2 + (y_u - y_v)**2) / (2 * sigma_spatial**2))
+    else:
+        w_spatial = 1
     
     # Flatten values and compute value weights
     values_flat = values.reshape(-1, 1).repeat(1, N*N)
@@ -49,6 +53,17 @@ def dissimilarity_torch(values):
 
     # Compute combined weights
     weights = w_value * w_spatial
+    
+    
+    # Assert the pytorch version (fast) is about as accurate as 1e-7 numpy (slow) version
+    # test1 = torch.tensor(dissimilarity(rand_inputs[0]))
+    # print(test1.shape)
+    # test2 = dissimilarity_torch(rand_inputs[0].double())
+    # print(test2.shape)
+    # epsilon = 1e-7  # Tolerance level
+    # diff = torch.abs(test1 - test2)
+    # print(diff)
+    # assert torch.all(diff < epsilon)
 
     return weights
             
@@ -86,7 +101,7 @@ def get_pairs_within_threshold(distance_matrix, threshold):
     np.fill_diagonal(distance_matrix, threshold + 1)
     
     # Filter the pairs based on the threshold
-    mask = distance_matrix[i, j] < threshold
+    mask = distance_matrix[i, j] <= threshold
     
     # Get the pairs where the condition is met
     pairs = list(zip(i[mask], j[mask]))
