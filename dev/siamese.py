@@ -31,6 +31,19 @@ def extract_3x3_patch(image, x, y):
     
     return patch.float().unsqueeze(0).unsqueeze(0)
 
+# TODO: test these
+def create_mask(shape, mask_coords):
+    """Create a binary mask of given shape with 1's at mask_coords and 0's elsewhere."""
+    mask = torch.zeros(shape)
+    for coord in mask_coords:
+        mask[coord] = 1
+    return mask
+
+def compute_masked_mse(inputs, outputs, mask_coords):
+    mask = create_mask(inputs.shape, mask_coords)
+    mse_loss = F.mse_loss(inputs * mask, outputs * mask, reduction='sum') / mask.sum()
+    return mse_loss
+
 class LeNetVariant(nn.Module):
     def __init__(self):
         super(LeNetVariant, self).__init__()
