@@ -151,7 +151,7 @@ class NC(nn.Module):
         
 d = 1
 lr = 1e-1
-epochs = 10
+epochs = 5000
 
 B,N,N = (1,10,10)
     
@@ -162,6 +162,7 @@ distance_matrix = distance_manhattan(rand_inputs.shape[2])
 
 pairs = get_pairs_outside_threshold(distance_matrix, 1)
 use_pairs = get_pairs_within_threshold(distance_matrix, 1)
+x_coords, y_coords = zip(*use_pairs)
 
 for u, values in enumerate(rand_inputs): # for each 'NxN image' in inputs
     x = dissimilarity_torch(values)
@@ -186,14 +187,17 @@ for trial in range(trials):
     model.to(device)
     optimizer = torch.optim.AdamW(model.parameters())
     
+    rand_inputs = rand_inputs.to(device)
+    rand_inputs.requires_grad_(True)
+    rand_targets = rand_targets.to(device)
+    
     for epoch in range(epochs):
-        print(f'Epoch {epoch}')
         for (inputs, labels) in zip(rand_inputs, rand_targets):
             i += 1
-            inputs = inputs.to(device)
+            # inputs = inputs.to(device)
             # inputs = inputs.unsqueeze(-1) # add C dimension of 1 to the B/W images.
-            inputs.requires_grad_(True)
-            labels = labels.to(device)
+            # inputs.requires_grad_(True)
+            # labels = labels.to(device)
 
             # passes and weights update
             with torch.set_grad_enabled(True):
@@ -201,30 +205,13 @@ for trial in range(trials):
                 # forward pass 
                 preds = model(inputs)
                 
-                y_pred_selected_vals = []
-                y_true_selected_vals = []
-
-                for (x, y) in use_pairs:
-                    y_pred_selected_vals.append(preds[x, y])
-                    y_true_selected_vals.append(labels[x, y])
-
-                y_pred_selected = torch.tensor(y_pred_selected_vals)
-                y_true_selected = torch.tensor(y_true_selected_vals)
+                # mask only the important ones for loss purposes
+                y_pred_selected = preds[x_coords, y_coords]
+                y_true_selected = labels[x_coords, y_coords]
 
                 # Compute the loss
                 loss = criterion(y_pred_selected, y_true_selected)
                 
-                print(f'{i} Loss: {loss.item()}')
-                # if i % 10 == 0:
-                #     plt.imshow(inputs.detach().cpu().numpy())
-                #     plt.savefig(f'outputs/{i}-input.pdf', dpi=300, bbox_inches='tight')
-                    
-                #     plt.imshow(labels.detach().cpu().numpy())
-                #     plt.savefig(f'outputs/{i}-labels.pdf', dpi=300, bbox_inches='tight')
-                    
-                #     plt.imshow(preds.detach().cpu().numpy())
-                #     plt.savefig(f'outputs/{i}-preds.pdf', dpi=300, bbox_inches='tight')
-
                 # backward pass
                 loss.backward() 
 
@@ -232,6 +219,7 @@ for trial in range(trials):
                 optimizer.step()
                 optimizer.zero_grad()
                 
+                print(f'{i} Loss: {loss.item()}')
                 learning_curves[trial].append(float(loss.item()))
                 
 for trial in range(len(learning_curves)):
