@@ -133,11 +133,11 @@ class MatrixNet(nn.Module):
             patch2 = extract_3x3_patch(image, i//self.n, j % self.n)
             x[i][j] = self.net(patch1, patch2)
             
-            if num % 500 == 0:
-                    plt.imshow(patch1.detach().cpu().numpy()[0][0])
-                    plt.savefig(f'outputs/{num}-patch1.pdf', dpi=300, bbox_inches='tight')
-                    plt.imshow(patch2.detach().cpu().numpy()[0][0])
-                    plt.savefig(f'outputs/{num}-patch2-{x[i][j]}.pdf', dpi=300, bbox_inches='tight')
+            # if num % 500 == 0:
+            #         plt.imshow(patch1.detach().cpu().numpy()[0][0])
+            #         plt.savefig(f'outputs/{num}-patch1.pdf', dpi=300, bbox_inches='tight')
+            #         plt.imshow(patch2.detach().cpu().numpy()[0][0])
+            #         plt.savefig(f'outputs/{num}-patch2-{x[i][j]}.pdf', dpi=300, bbox_inches='tight')
         return x
     
 class NC(nn.Module):
@@ -152,19 +152,23 @@ class NC(nn.Module):
 d = 1
 lr = 1e-1
 epochs = 10
+
+B,N,N = (1,10,10)
     
-rand_inputs = torch.rand(10,20,20)
+rand_inputs = torch.rand(B,N,N)
 rand_inputs = torch.where(rand_inputs > 0.5, 1.0, 0.0)
 rand_targets = []
 distance_matrix = distance_manhattan(rand_inputs.shape[2]) 
-for i, values in enumerate(rand_inputs):
+
+pairs = get_pairs_outside_threshold(distance_matrix, 1)
+use_pairs = get_pairs_within_threshold(distance_matrix, 1)
+
+for u, values in enumerate(rand_inputs): # for each 'NxN image' in inputs
     x = dissimilarity_torch(values)
     x = torch.triu(x, 1)
-    
-    pairs = get_pairs_outside_threshold(distance_matrix, 1)
     for i,j in pairs:
         x[i][j] = 0
-    
+
     rand_targets.append(x)
 rand_targets = torch.stack(rand_targets)
 
@@ -196,18 +200,30 @@ for trial in range(trials):
                 
                 # forward pass 
                 preds = model(inputs)
-                loss  = criterion(preds, labels)
+                
+                y_pred_selected_vals = []
+                y_true_selected_vals = []
+
+                for (x, y) in use_pairs:
+                    y_pred_selected_vals.append(preds[x, y])
+                    y_true_selected_vals.append(labels[x, y])
+
+                y_pred_selected = torch.tensor(y_pred_selected_vals)
+                y_true_selected = torch.tensor(y_true_selected_vals)
+
+                # Compute the loss
+                loss = criterion(y_pred_selected, y_true_selected)
                 
                 print(f'{i} Loss: {loss.item()}')
-                if i % 10 == 0:
-                    plt.imshow(inputs.detach().cpu().numpy())
-                    plt.savefig(f'outputs/{i}-input.pdf', dpi=300, bbox_inches='tight')
+                # if i % 10 == 0:
+                #     plt.imshow(inputs.detach().cpu().numpy())
+                #     plt.savefig(f'outputs/{i}-input.pdf', dpi=300, bbox_inches='tight')
                     
-                    plt.imshow(labels.detach().cpu().numpy())
-                    plt.savefig(f'outputs/{i}-labels.pdf', dpi=300, bbox_inches='tight')
+                #     plt.imshow(labels.detach().cpu().numpy())
+                #     plt.savefig(f'outputs/{i}-labels.pdf', dpi=300, bbox_inches='tight')
                     
-                    plt.imshow(preds.detach().cpu().numpy())
-                    plt.savefig(f'outputs/{i}-preds.pdf', dpi=300, bbox_inches='tight')
+                #     plt.imshow(preds.detach().cpu().numpy())
+                #     plt.savefig(f'outputs/{i}-preds.pdf', dpi=300, bbox_inches='tight')
 
                 # backward pass
                 loss.backward() 
