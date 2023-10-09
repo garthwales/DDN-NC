@@ -150,14 +150,17 @@ class NC(nn.Module):
     """
     
     def forward(self, x):
-        y = EigenDecompositionFcn().apply(x)[:, 1] # second smallest eigenvector.. no batch dim
-        return y
+        Y = EigenDecompositionFcn().apply(x)[:, 1] # second smallest eigenvector.. no batch dim
+        signs = Y[:, 0].sign().unsqueeze(1)
+        Y = Y * signs
+        return Y
         
-d = 1
-lr = 1e-1
-epochs = 5000
 
-B,N,N = (1,10,10)
+B,N,N = (3,20,20)
+d = N*N // 2
+lr = 1e-3
+epochs = 100
+trials = 3
     
 # rand_inputs = torch.rand(B,N,N)
 # rand_inputs = torch.where(rand_inputs > 0.5, 1.0, 0.0)
@@ -167,8 +170,8 @@ rand_inputs = torch.tensor([[1.,1.,1.],[1.,1.,0.],[1.,0.,0.]], dtype=torch.float
 rand_targets = []
 distance_matrix = distance_manhattan(rand_inputs.shape[2]) 
 
-outside_pairs = get_pairs_outside_threshold(distance_matrix, N*N)
-use_pairs = get_pairs_within_threshold(distance_matrix, N*N)
+outside_pairs = get_pairs_outside_threshold(distance_matrix, d)
+use_pairs = get_pairs_within_threshold(distance_matrix, d)
 x_coords, y_coords = zip(*use_pairs)
 
 for u, values in enumerate(rand_inputs): # for each 'NxN image' in inputs
@@ -181,24 +184,26 @@ for u, values in enumerate(rand_inputs): # for each 'NxN image' in inputs
     D = torch.diag(torch.sum(x, axis=1))
     D_inv_sqrt = torch.linalg.inv(torch.sqrt(D))
     L_norm = torch.eye(x.shape[0]) - D_inv_sqrt @ (D-x) @ D_inv_sqrt
-    rand_targets.append(L_norm)
-rand_targets = torch.stack(rand_targets)
-a,b = torch.linalg.eigh(rand_targets,UPLO='U')
+    a,b = torch.linalg.eigh(L_norm,UPLO='U')
+    signs = b[:, 0].sign().unsqueeze(1)
+    b = b * signs
 
-rand_targets = b[:,:,1].unsqueeze(0)
+    rand_targets.append(b[:,1])
+rand_targets = torch.stack(rand_targets)
 criterion = nn.MSELoss(reduction='mean')
+# criterion = torch.mean(torch.abs(torch.nn.functional.cosine_similarity(dim=0)))
 device = 'cuda:1'
 
 
 # loop through batches
-i = 0
-trials = 1
 learning_curves = [[] for i in range(trials)]
 for trial in range(trials):
+    i = 0
     torch.manual_seed(22 + trial)
     model = MatrixNet(rand_inputs.shape, d=d, device=device)
     model.to(device)
-    optimizer = torch.optim.AdamW(model.parameters())
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=50, verbose=True)
     
     rand_inputs = rand_inputs.to(device)
     rand_inputs.requires_grad_(True)
@@ -223,15 +228,15 @@ for trial in range(trials):
                 # y_true_selected = labels[x_coords, y_coords]
 
                 # Compute the loss
-                loss = criterion(preds, labels)
+                loss = torch.mean(torch.abs(torch.nn.functional.cosine_similarity(preds.flatten(), labels.flatten(), dim=0)))
+                # loss = criterion(preds, labels)
                 
                 # backward pass
                 loss.backward() 
 
                 # weights update
                 optimizer.step()
-                optimizer.zero_grad()
-                
+                optimizer.zero_grad()                
                 print(f'{i} Loss: {loss.item()}')
                 learning_curves[trial].append(float(loss.item()))
                 
