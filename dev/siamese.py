@@ -91,7 +91,6 @@ class EigenDecompositionFcn(torch.autograd.Function):
     def forward(ctx, X, top_k=None):
         B, M, N = X.shape
         assert N == M
-        assert (top_k is None) or (1 <= top_k <= M)
 
         with torch.no_grad():
             lmd, Y = torch.linalg.eigh(X,UPLO='U')
@@ -122,7 +121,7 @@ class MatrixNet(nn.Module):
         distance_matrix = distance_manhattan(self.n) 
         self.pairs = get_pairs_within_threshold(distance_matrix, self.d)
         self.net = SiameseNetworkLeNet()
-        self.nc = EigenDecompositionFcn()
+        self.nc = NC()
         self.device = device
         
     def forward(self, image):
@@ -138,6 +137,11 @@ class MatrixNet(nn.Module):
             #         plt.savefig(f'outputs/{num}-patch1.pdf', dpi=300, bbox_inches='tight')
             #         plt.imshow(patch2.detach().cpu().numpy()[0][0])
             #         plt.savefig(f'outputs/{num}-patch2-{x[i][j]}.pdf', dpi=300, bbox_inches='tight')
+        x = 0.5 * (x + x.transpose(0, 1))
+        D = torch.diag(torch.sum(x, axis=1))
+        D_inv_sqrt = torch.linalg.inv(torch.sqrt(D))
+        L_norm = torch.eye(x.shape[0], device=x.device) - D_inv_sqrt @ (D-x) @ D_inv_sqrt
+        x = self.nc(L_norm.unsqueeze(0))
         return x
     
 class NC(nn.Module):
@@ -155,24 +159,33 @@ epochs = 5000
 
 B,N,N = (1,10,10)
     
-rand_inputs = torch.rand(B,N,N)
-rand_inputs = torch.where(rand_inputs > 0.5, 1.0, 0.0)
+# rand_inputs = torch.rand(B,N,N)
+# rand_inputs = torch.where(rand_inputs > 0.5, 1.0, 0.0)
+
+rand_inputs = torch.tensor([[1.,1.,1.],[1.,1.,0.],[1.,0.,0.]], dtype=torch.float).unsqueeze(0) # 1x3x3
+
 rand_targets = []
 distance_matrix = distance_manhattan(rand_inputs.shape[2]) 
 
-pairs = get_pairs_outside_threshold(distance_matrix, 1)
-use_pairs = get_pairs_within_threshold(distance_matrix, 1)
+outside_pairs = get_pairs_outside_threshold(distance_matrix, N*N)
+use_pairs = get_pairs_within_threshold(distance_matrix, N*N)
 x_coords, y_coords = zip(*use_pairs)
 
 for u, values in enumerate(rand_inputs): # for each 'NxN image' in inputs
     x = dissimilarity_torch(values)
-    x = torch.triu(x, 1)
-    for i,j in pairs:
-        x[i][j] = 0
+    x = torch.triu(x, 0)
+    # for i,j in outside_pairs:
+    #     x[i][j] = 0
 
-    rand_targets.append(x)
+    # nc cut unique part
+    D = torch.diag(torch.sum(x, axis=1))
+    D_inv_sqrt = torch.linalg.inv(torch.sqrt(D))
+    L_norm = torch.eye(x.shape[0]) - D_inv_sqrt @ (D-x) @ D_inv_sqrt
+    rand_targets.append(L_norm)
 rand_targets = torch.stack(rand_targets)
+a,b = torch.linalg.eigh(rand_targets,UPLO='U')
 
+rand_targets = b[:,:,1].unsqueeze(0)
 criterion = nn.MSELoss(reduction='mean')
 device = 'cuda:1'
 
@@ -206,11 +219,11 @@ for trial in range(trials):
                 preds = model(inputs)
                 
                 # mask only the important ones for loss purposes
-                y_pred_selected = preds[x_coords, y_coords]
-                y_true_selected = labels[x_coords, y_coords]
+                # y_pred_selected = preds[x_coords, y_coords]
+                # y_true_selected = labels[x_coords, y_coords]
 
                 # Compute the loss
-                loss = criterion(y_pred_selected, y_true_selected)
+                loss = criterion(preds, labels)
                 
                 # backward pass
                 loss.backward() 
